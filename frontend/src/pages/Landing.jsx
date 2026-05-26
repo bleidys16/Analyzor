@@ -45,8 +45,8 @@ export default function Landing() {
   const [error, setError] = useState(null)
   const [dragActive, setDragActive] = useState(false)
   
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(true)
+  // Theme state (Light is default)
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light')
@@ -445,8 +445,8 @@ export default function Landing() {
                 <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Precisión de Entrenamiento ML (Random Forest)</h3>
                 <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>Acc: 96.4%</span>
               </div>
-              <div style={{ width: '100%', height: '180px' }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: '100%', height: '180px', minWidth: 0, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height={180}>
                   <AreaChart data={mlTrainingData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
                     <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
                     <Tooltip 
@@ -472,8 +472,8 @@ export default function Landing() {
                 <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Consulta SQL: Ventas por Categoría</h3>
                 <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>LIMIT 4</span>
               </div>
-              <div style={{ width: '100%', height: '180px' }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <div style={{ width: '100%', height: '180px', minWidth: 0, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={sqlQueryResult} margin={{ top: 10, right: 5, left: -15, bottom: 0 }}>
                     <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
                     <Tooltip 

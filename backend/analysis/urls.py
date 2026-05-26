@@ -1,5 +1,8 @@
 from django.urls import path
-from . import views
+from .views import AutoAnalyzeAPIView, AnalysisDetailAPIView, QueryAPIView
 
 urlpatterns = [
+    path('auto-analyze/', AutoAnalyzeAPIView.as_view(), name='auto-analyze'),
+    path('<uuid:pk>/', AnalysisDetailAPIView.as_view(), name='analysis-detail'),
+    path('query/', QueryAPIView.as_view(), name='execute-query'),
 ]

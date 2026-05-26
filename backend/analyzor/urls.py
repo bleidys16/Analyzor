@@ -5,12 +5,10 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include([
-        path('datasets/', include('datasets.urls')),
-        path('analysis/', include('analysis.urls')),
-        path('models/', include('ml_models.urls')),
-        path('chat/', include('chat.urls')),
-    ])),
+    path('api/datasets/', include('datasets.urls')),
+    path('api/analysis/', include('analysis.urls')),
+    path('api/models/', include('ml_models.urls')),
+    path('api/chat/', include('chat.urls')),
 ]
 
 if settings.DEBUG:
