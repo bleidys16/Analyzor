@@ -101,8 +101,8 @@ class AnalysisDetailAPIView(APIView):
     GET /api/analysis/<uuid:pk>/
     header: X-Session-ID
     """
+
     def get(self, request, pk=None):
-        print("ENTER AnalysisDetailAPIView.get")
         session_id = request.headers.get('X-Session-ID')
 
         if not session_id:
@@ -112,7 +112,20 @@ class AnalysisDetailAPIView(APIView):
             )
 
         dataset = get_object_or_404(Dataset, id=pk, session_id=session_id)
-        analysis = get_object_or_404(Analysis, dataset=dataset)
+
+        # Si no existe análisis, lo generamos aquí para evitar 404 permanente
+        try:
+            analysis = Analysis.objects.get(dataset=dataset)
+        except Analysis.DoesNotExist:
+            engine = AnalysisEngine(dataset.file.path)
+            analysis_data = engine.run_full_analysis()
+            analysis = Analysis.objects.create(
+                dataset=dataset,
+                statistics=analysis_data['statistics'],
+                correlations=analysis_data['correlations'],
+                data_quality=analysis_data['data_quality'],
+                anomalies=analysis_data['anomalies'],
+            )
 
         serializer = AnalysisSerializer(analysis)
         return Response(serializer.data, status=status.HTTP_200_OK)
