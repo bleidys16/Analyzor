@@ -15,4 +15,8 @@ export const analysisAPI = {
       sql,
     })
   },
+
+  getDistributions: async (datasetId) => {
+    return client.post('/analysis/distributions/', { dataset_id: datasetId })
+  },
 }

@@ -7,7 +7,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/datasets/', include('datasets.urls')),
     path('api/analysis/', include('analysis.urls')),
-    path('api/models/', include('ml_models.urls')),
+    path('api/export/', include('export.urls')),
     path('api/chat/', include('chat.urls')),
 ]
 

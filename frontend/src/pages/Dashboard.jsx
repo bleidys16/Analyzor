@@ -3,10 +3,11 @@ import { useParams } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import { analysisAPI } from '../api/analysis'
 import { chatAPI } from '../api/chat'
+import { exportAPI } from '../api/export'
 import { useStore } from '../store/store'
 import ChatMessages from '../components/Chat/ChatMessages'
 import ChatInput from '../components/Chat/ChatInput'
-import MLPanel from '../components/ML/MLPanel'
+import DynamicCharts from '../components/Dashboard/DynamicCharts'
 
 export default function Dashboard() {
   const { datasetId } = useParams()
@@ -91,6 +92,22 @@ export default function Dashboard() {
     setSending(false)
   }
 }
+
+  const handleExportPDF = async () => {
+    try {
+      const response = await exportAPI.exportPDF(datasetId, analysis)
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${dataset?.name || 'reporte'}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error exportando PDF:', err)
+    }
+  }
 
   if (loading) {
     return (
@@ -267,12 +284,20 @@ export default function Dashboard() {
               <span>{(dataset?.file_size / 1024).toFixed(2)} KB</span>
             </p>
           </div>
-        <button
-          className="btn-primary"
-          style={{ background: 'var(--accent)' }}
-        >
-          📥 Exportar PDF
-        </button>
+          <button
+            onClick={handleExportPDF}
+            style={{
+              padding: '10px 20px',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '14px',
+            }}>
+            📥 Exportar PDF
+          </button>
         </div>
 
         {/* Main Grid: Content + Chat */}
@@ -284,251 +309,14 @@ export default function Dashboard() {
         }}>
           {/* Left: Analysis */}
           <div style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            padding: '24px',
             overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
           }}>
-            {/* Data Quality Section */}
-            <div style={{ marginBottom: '32px' }}>
-              <h2 style={{ 
-                margin: '0 0 16px 0', 
-                fontSize: '16px', 
-                fontWeight: 700, 
-                color: '#0f172a',
-              }}>
-                Calidad de Datos
-              </h2>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '12px',
-              }}>
-                {dataset?.columns?.slice(0, 4).map((col) => (
-                  <div key={col} className="stat-card">
-                    <p style={{ 
-                      margin: '0 0 8px 0', 
-                      fontSize: '11px', 
-                      color: '#64748b', 
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}>
-                      {col}
-                    </p>
-                    <p style={{ 
-                      margin: '0 0 6px 0', 
-                      fontSize: '14px', 
-                      fontWeight: 700,
-                      color: '#0f172a',
-                    }}>
-                      {analysis?.data_quality?.[col]?.dtype || 'unknown'}
-                    </p>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '11px',
-                      color: '#64748b',
-                    }}>
-                      <span>{analysis?.data_quality?.[col]?.unique_count} únicos</span>
-                      <span style={{ 
-                        color: analysis?.data_quality?.[col]?.null_pct > 20 ? '#ef4444' : '#10b981',
-                        fontWeight: 600,
-                      }}>
-                        {analysis?.data_quality?.[col]?.null_pct?.toFixed(1)}% nulos
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Anomalies */}
-            {analysis?.anomalies?.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <h2 style={{ 
-                  margin: '0 0 16px 0', 
-                  fontSize: '16px', 
-                  fontWeight: 700, 
-                  color: '#ef4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}>
-                  ⚠️ Anomalías Detectadas
-                </h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {analysis?.anomalies?.map((anomaly, idx) => (
-                    <div key={idx} className="anomaly-card">
-                      <p style={{ 
-                        margin: 0, 
-                        fontSize: '13px', 
-                        color: '#991b1b',
-                        fontWeight: 600,
-                      }}>
-                        {anomaly.message}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Statistics Table */}
-            <div style={{ marginBottom: '32px' }}>
-              <h2 style={{ 
-                margin: '0 0 16px 0', 
-                fontSize: '16px', 
-                fontWeight: 700, 
-                color: '#0f172a',
-              }}>
-                Estadísticas Descriptivas
-              </h2>
-              <div style={{
-                overflowX: 'auto',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-              }}>
-                <table style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '13px',
-                }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{
-                        padding: '10px 12px',
-                        textAlign: 'left',
-                        fontWeight: 700,
-                        color: '#64748b',
-                      }}>
-                        Columna
-                      </th>
-                      <th style={{
-                        padding: '10px 12px',
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: '#64748b',
-                      }}>
-                        Media
-                      </th>
-                      <th style={{
-                        padding: '10px 12px',
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: '#64748b',
-                      }}>
-                        Mediana
-                      </th>
-                      <th style={{
-                        padding: '10px 12px',
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: '#64748b',
-                      }}>
-                        Desv Std
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dataset?.columns?.slice(0, 5).map((col) => {
-                      const stats = analysis?.statistics?.[col]
-                      if (!stats?.mean) return null
-                      return (
-                        <tr key={col} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{
-                            padding: '10px 12px',
-                            color: '#0f172a',
-                            fontWeight: 500,
-                          }}>
-                            {col}
-                          </td>
-                          <td style={{
-                            padding: '10px 12px',
-                            color: '#64748b',
-                            textAlign: 'right',
-                          }}>
-                            {stats.mean?.toFixed(2)}
-                          </td>
-                          <td style={{
-                            padding: '10px 12px',
-                            color: '#64748b',
-                            textAlign: 'right',
-                          }}>
-                            {stats.median?.toFixed(2)}
-                          </td>
-                          <td style={{
-                            padding: '10px 12px',
-                            color: '#64748b',
-                            textAlign: 'right',
-                          }}>
-                            {stats.std?.toFixed(2)}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Data Preview */}
-            <div>
-              <h2 style={{ 
-                margin: '0 0 16px 0', 
-                fontSize: '16px', 
-                fontWeight: 700, 
-                color: '#0f172a',
-              }}>
-                Preview de Datos
-              </h2>
-              <div style={{
-                overflowX: 'auto',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-              }}>
-                <table style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '12px',
-                }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      {dataset?.columns?.slice(0, 5).map((col, idx) => (
-                        <th key={idx} style={{
-                          padding: '10px 12px',
-                          textAlign: 'left',
-                          fontWeight: 700,
-                          color: '#64748b',
-                        }}>
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dataset?.preview?.slice(0, 5).map((row, ridx) => (
-                      <tr key={ridx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        {dataset?.columns?.slice(0, 5).map((col, cidx) => (
-                          <td key={cidx} style={{
-                            padding: '10px 12px',
-                            color: '#0f172a',
-                          }}>
-                            {String(row[col] || '').substring(0, 25)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DynamicCharts dataset={dataset} analysis={analysis} />
           </div>
 
-          {/* En el return, antes del chat: */}
-          {dataset && <MLPanel datasetId={datasetId} columns={dataset.columns} />}
           {/* Right: Chat */}
           <div style={{
             background: '#ffffff',

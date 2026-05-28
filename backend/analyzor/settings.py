@@ -22,7 +22,7 @@ INSTALLED_APPS = [
     'api',
     'datasets',
     'analysis',
-    'ml_models',
+    'export',
     'chat',
 ]
 
