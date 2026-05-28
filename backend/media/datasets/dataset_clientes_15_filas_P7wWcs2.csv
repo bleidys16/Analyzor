@@ -1,0 +1,16 @@
+ID_Cliente,Nombre,Edad,Ciudad,Gasto_Mensual_EUR,Suscripcion
+101,Alejandro García,28,Madrid,120.5,Premium
+102,María Rodríguez,34,Barcelona,85.0,Básico
+103,Javier López,45,Valencia,210.3,Premium
+104,Lucía Martínez,22,Sevilla,45.2,Básico
+105,Carlos Pérez,31,Zaragoza,150.0,Estándar
+106,Ana Sánchez,29,Málaga,99.99,Básico
+107,Diego Ramírez,40,Murcia,175.4,Estándar
+108,Elena Torres,37,Palma,130.0,Premium
+109,Sergio Gómez,25,Bilbao,60.0,Básico
+110,Isabel Díaz,50,Alicante,305.15,Premium
+111,Roberto Ruiz,33,Córdoba,88.4,Estándar
+112,Laura Morales,27,Valladolid,112.0,Estándar
+113,Fernando Castro,42,Vigo,190.25,Premium
+114,Sofía Ortiz,24,Gijón,55.7,Básico
+115,Pablo Navarro,38,Granada,142.8,Estándar

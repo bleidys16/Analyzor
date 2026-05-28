@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import { analysisAPI } from '../api/analysis'
+import { chatAPI } from '../api/chat'
 import { useStore } from '../store/store'
+import ChatMessages from '../components/Chat/ChatMessages'
+import ChatInput from '../components/Chat/ChatInput'
 
 export default function Dashboard() {
-
   const { sessionId: datasetId } = useParams()
   const { setCurrentDataset } = useStore()
   const [dataset, setDataset] = useState(null)
@@ -13,23 +15,24 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [sending, setSending] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cargar dataset
         const datasetResponse = await datasetsAPI.getById(datasetId)
         setDataset(datasetResponse.data)
         setCurrentDataset(datasetResponse.data)
         
-        // Intentar cargar análisis existente
         try {
           const analysisResponse = await analysisAPI.getAnalysis(datasetId)
           setAnalysis(analysisResponse.data)
         } catch (err) {
-          // Si no existe análisis, iniciar automáticamente
           await runAutoAnalysis(datasetId)
         }
+        
+        await loadChatHistory()
       } catch (err) {
         setError(err.response?.data?.detail || 'Error al cargar datos')
       } finally {
@@ -54,25 +57,53 @@ export default function Dashboard() {
     }
   }
 
+  const loadChatHistory = async () => {
+    try {
+      const response = await chatAPI.getHistory(datasetId)
+      setMessages(response.data?.history || [])
+    } catch (err) {
+      console.error('Error cargando chat:', err)
+    }
+  }
+
+  const handleSendMessage = async (message) => {
+    if (!message.trim()) return
+
+    setSending(true)
+    try {
+      const response = await chatAPI.sendMessage(datasetId, message)
+
+      // backend devuelve: { message: <ChatMessage>, history: [...] }
+      const assistantMsg = response.data?.message
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: message },
+        assistantMsg ? { role: assistantMsg.role, content: assistantMsg.content } : assistantMsg,
+      ])
+    } catch (err) {
+      console.error('Error enviando mensaje:', err)
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-color)',
-          color: 'var(--text-main)',
-        }}
-      >
-
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-color)',
+        color: 'var(--text-main)',
+        fontFamily: '"Space Grotesk", sans-serif',
+      }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
             width: '40px',
             height: '40px',
-            border: '3px solid #e2e8f0',
-            borderTop: '3px solid #3b82f6',
+            border: '3px solid var(--card-border)',
+            borderTop: '3px solid var(--accent)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 20px',
@@ -95,20 +126,20 @@ export default function Dashboard() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--bg-color)',
-        color: 'var(--text-main)',
+        background: '#f8fafc',
+        fontFamily: '"Space Grotesk", sans-serif',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
             width: '40px',
             height: '40px',
             border: '3px solid #e2e8f0',
-            borderTop: '3px solid #3b82f6',
+            borderTop: '3px solid #ef4444',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 20px',
           }} />
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Analizando tu dataset...</p>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>Analizando tu dataset...</p>
         </div>
         <style>{`
           @keyframes spin {
@@ -126,10 +157,17 @@ export default function Dashboard() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--bg-color)',
-        color: 'var(--text-main)',
+        background: '#f8fafc',
+        fontFamily: '"Space Grotesk", sans-serif',
       }}>
-        <p style={{ color: '#ef4444', fontSize: '16px' }}>{error}</p>
+        <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" style={{ margin: '0 auto 20px' }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <p style={{ color: '#ef4444', fontSize: '16px', fontWeight: 600 }}>{error}</p>
+        </div>
       </div>
     )
   }
@@ -137,107 +175,194 @@ export default function Dashboard() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-color)',
-      padding: '30px',
-      color: 'var(--text-main)',
+      background: '#f8fafc',
+      padding: '30px 20px',
       fontFamily: '"Space Grotesk", sans-serif',
     }}>
+      <style>{`
+        .stat-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+          transition: all 0.2s ease;
+        }
+        .stat-card:hover {
+          border-color: #ef4444;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+        }
+        .anomaly-card {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 8px;
+          padding: 12px;
+          border-left: 3px solid #ef4444;
+        }
+        .btn-primary {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+          background: #2563eb;
+          transform: translateY(-1px);
+        }
+        .btn-secondary {
+          background: transparent;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          padding: 8px 14px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 12px;
+          transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+        }
+      `}</style>
+
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           marginBottom: '30px',
         }}>
           <div>
-            <h1 style={{ margin: '0 0 5px 0', fontSize: '32px', fontWeight: 700 }}>
+            <h1 style={{ 
+              margin: '0 0 8px 0', 
+              fontSize: '32px', 
+              fontWeight: 700, 
+              color: '#0f172a',
+              letterSpacing: '-0.5px',
+            }}>
               {dataset?.name || 'Dashboard'}
             </h1>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
-              {dataset?.rows_count?.toLocaleString()} filas • {dataset?.columns?.length} columnas
+            <p style={{ 
+              margin: 0, 
+              color: '#64748b', 
+              fontSize: '14px',
+              display: 'flex',
+              gap: '20px',
+            }}>
+              <span>{dataset?.rows_count?.toLocaleString()} filas</span>
+              <span>•</span>
+              <span>{dataset?.columns?.length} columnas</span>
+              <span>•</span>
+              <span>{(dataset?.file_size / 1024).toFixed(2)} KB</span>
             </p>
           </div>
-          <button style={{
-            padding: '10px 20px',
-            background: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 600,
-          }}>
-            Exportar PDF
-          </button>
+        <button
+          className="btn-primary"
+          style={{ background: 'var(--accent)' }}
+        >
+          📥 Exportar PDF
+        </button>
         </div>
 
-        {/* Main Grid */}
+        {/* Main Grid: Content + Chat */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 320px',
-          gap: '20px',
+          gridTemplateColumns: '1fr 340px',
+          gap: '24px',
           minHeight: 'calc(100vh - 200px)',
         }}>
           {/* Left: Analysis */}
           <div style={{
-            background: 'var(--card-bg)',
+            background: '#ffffff',
             borderRadius: '12px',
-            border: '1px solid var(--card-border)',
-            padding: '20px',
-            color: 'var(--text-main)',
+            border: '1px solid #e2e8f0',
+            padding: '24px',
             overflowY: 'auto',
           }}>
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: 600 }}>
-              Análisis Automático
-            </h2>
-
-            {/* Data Quality Cards */}
-            <div style={{ marginBottom: '30px' }}>
-              <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 600, color: '#64748b' }}>
+            {/* Data Quality Section */}
+            <div style={{ marginBottom: '32px' }}>
+              <h2 style={{ 
+                margin: '0 0 16px 0', 
+                fontSize: '16px', 
+                fontWeight: 700, 
+                color: '#0f172a',
+              }}>
                 Calidad de Datos
-              </h3>
+              </h2>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '12px',
               }}>
                 {dataset?.columns?.slice(0, 4).map((col) => (
-                  <div key={col} style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '12px',
-                  }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                  <div key={col} className="stat-card">
+                    <p style={{ 
+                      margin: '0 0 8px 0', 
+                      fontSize: '11px', 
+                      color: '#64748b', 
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}>
                       {col}
                     </p>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: 600 }}>
+                    <p style={{ 
+                      margin: '0 0 6px 0', 
+                      fontSize: '14px', 
+                      fontWeight: 700,
+                      color: '#0f172a',
+                    }}>
                       {analysis?.data_quality?.[col]?.dtype || 'unknown'}
                     </p>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>
-                      {analysis?.data_quality?.[col]?.null_pct?.toFixed(1)}% nulos
-                    </p>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '11px',
+                      color: '#64748b',
+                    }}>
+                      <span>{analysis?.data_quality?.[col]?.unique_count} únicos</span>
+                      <span style={{ 
+                        color: analysis?.data_quality?.[col]?.null_pct > 20 ? '#ef4444' : '#10b981',
+                        fontWeight: 600,
+                      }}>
+                        {analysis?.data_quality?.[col]?.null_pct?.toFixed(1)}% nulos
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Anomalías */}
+            {/* Anomalies */}
             {analysis?.anomalies?.length > 0 && (
-              <div style={{ marginBottom: '30px' }}>
-                <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 600, color: '#dc2626' }}>
+              <div style={{ marginBottom: '32px' }}>
+                <h2 style={{ 
+                  margin: '0 0 16px 0', 
+                  fontSize: '16px', 
+                  fontWeight: 700, 
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
                   ⚠️ Anomalías Detectadas
-                </h3>
+                </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {analysis?.anomalies?.map((anomaly, idx) => (
-                    <div key={idx} style={{
-                      background: '#fef2f2',
-                      border: '1px solid #fecaca',
-                      borderRadius: '6px',
-                      padding: '10px',
-                    }}>
-                      <p style={{ margin: 0, fontSize: '12px', color: '#991b1b' }}>
+                    <div key={idx} className="anomaly-card">
+                      <p style={{ 
+                        margin: 0, 
+                        fontSize: '13px', 
+                        color: '#991b1b',
+                        fontWeight: 600,
+                      }}>
                         {anomaly.message}
                       </p>
                     </div>
@@ -246,31 +371,58 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Estadísticas */}
-            <div style={{ marginBottom: '30px' }}>
-              <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 600, color: '#64748b' }}>
-                Estadísticas
-              </h3>
+            {/* Statistics Table */}
+            <div style={{ marginBottom: '32px' }}>
+              <h2 style={{ 
+                margin: '0 0 16px 0', 
+                fontSize: '16px', 
+                fontWeight: 700, 
+                color: '#0f172a',
+              }}>
+                Estadísticas Descriptivas
+              </h2>
               <div style={{
                 overflowX: 'auto',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
               }}>
                 <table style={{
                   width: '100%',
                   borderCollapse: 'collapse',
-                  fontSize: '12px',
+                  fontSize: '13px',
                 }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>
+                      <th style={{
+                        padding: '10px 12px',
+                        textAlign: 'left',
+                        fontWeight: 700,
+                        color: '#64748b',
+                      }}>
                         Columna
                       </th>
-                      <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>
+                      <th style={{
+                        padding: '10px 12px',
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: '#64748b',
+                      }}>
                         Media
                       </th>
-                      <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>
+                      <th style={{
+                        padding: '10px 12px',
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: '#64748b',
+                      }}>
                         Mediana
                       </th>
-                      <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>
+                      <th style={{
+                        padding: '10px 12px',
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: '#64748b',
+                      }}>
                         Desv Std
                       </th>
                     </tr>
@@ -281,14 +433,32 @@ export default function Dashboard() {
                       if (!stats?.mean) return null
                       return (
                         <tr key={col} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '8px', color: '#1a1a1a' }}>{col}</td>
-                          <td style={{ padding: '8px', color: '#64748b' }}>
+                          <td style={{
+                            padding: '10px 12px',
+                            color: '#0f172a',
+                            fontWeight: 500,
+                          }}>
+                            {col}
+                          </td>
+                          <td style={{
+                            padding: '10px 12px',
+                            color: '#64748b',
+                            textAlign: 'right',
+                          }}>
                             {stats.mean?.toFixed(2)}
                           </td>
-                          <td style={{ padding: '8px', color: '#64748b' }}>
+                          <td style={{
+                            padding: '10px 12px',
+                            color: '#64748b',
+                            textAlign: 'right',
+                          }}>
                             {stats.median?.toFixed(2)}
                           </td>
-                          <td style={{ padding: '8px', color: '#64748b' }}>
+                          <td style={{
+                            padding: '10px 12px',
+                            color: '#64748b',
+                            textAlign: 'right',
+                          }}>
                             {stats.std?.toFixed(2)}
                           </td>
                         </tr>
@@ -299,89 +469,102 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Preview */}
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 600, color: '#64748b' }}>
-              Preview de Datos
-            </h3>
-            <div style={{
-              overflowX: 'auto',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-            }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                fontSize: '12px',
+            {/* Data Preview */}
+            <div>
+              <h2 style={{ 
+                margin: '0 0 16px 0', 
+                fontSize: '16px', 
+                fontWeight: 700, 
+                color: '#0f172a',
               }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    {dataset?.columns?.slice(0, 5).map((col, idx) => (
-                      <th key={idx} style={{
-                        padding: '8px',
-                        textAlign: 'left',
-                        fontWeight: 600,
-                        color: '#64748b',
-                      }}>
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {dataset?.preview?.slice(0, 5).map((row, ridx) => (
-                    <tr key={ridx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      {dataset?.columns?.slice(0, 5).map((col, cidx) => (
-                        <td key={cidx} style={{
-                          padding: '8px',
-                          color: '#1a1a1a',
+                Preview de Datos
+              </h2>
+              <div style={{
+                overflowX: 'auto',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+              }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontSize: '12px',
+                }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      {dataset?.columns?.slice(0, 5).map((col, idx) => (
+                        <th key={idx} style={{
+                          padding: '10px 12px',
+                          textAlign: 'left',
+                          fontWeight: 700,
+                          color: '#64748b',
                         }}>
-                          {String(row[col] || '').substring(0, 25)}
-                        </td>
+                          {col}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {dataset?.preview?.slice(0, 5).map((row, ridx) => (
+                      <tr key={ridx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        {dataset?.columns?.slice(0, 5).map((col, cidx) => (
+                          <td key={cidx} style={{
+                            padding: '10px 12px',
+                            color: '#0f172a',
+                          }}>
+                            {String(row[col] || '').substring(0, 25)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           {/* Right: Chat */}
           <div style={{
-            background: 'var(--card-bg)',
+            background: '#ffffff',
             borderRadius: '12px',
             border: '1px solid #e2e8f0',
-            padding: '15px',
+            padding: '20px',
             display: 'flex',
             flexDirection: 'column',
             height: 'calc(100vh - 180px)',
             position: 'sticky',
             top: '20px',
           }}>
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 600 }}>
-              Asistente IA
-            </h3>
             <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              marginBottom: '15px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px',
+              paddingBottom: '12px',
               borderBottom: '1px solid #e2e8f0',
-              paddingBottom: '15px',
-              minHeight: '300px',
             }}>
-              <p style={{ color: '#94a3b8', fontSize: '12px', textAlign: 'center', marginTop: '50px' }}>
-                Haz preguntas sobre tus datos
-              </p>
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '14px', 
+                fontWeight: 700,
+                color: '#0f172a',
+              }}>
+                Asistente IA
+              </h3>
+              <button
+                onClick={() => {
+                  chatAPI.clearChat(datasetId)
+                  setMessages([])
+                }}
+                className="btn-secondary"
+              >
+                Limpiar
+              </button>
             </div>
-            <input
-              type="text"
-              placeholder="Pregunta..."
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontFamily: '"Space Grotesk", sans-serif',
-              }}
+
+            <ChatMessages messages={messages} />
+            <ChatInput 
+              onSend={handleSendMessage} 
+              datasetId={datasetId}
             />
           </div>
         </div>
