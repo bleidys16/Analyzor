@@ -12,6 +12,7 @@ from datasets.models import Dataset
 from .models import Analysis, Query
 from .serializers import AnalysisSerializer, QuerySerializer
 from .engines import AnalysisEngine, SQLEngine
+from .utils import generate_analysis_summary
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -296,3 +297,33 @@ class ColumnDistributionsAPIView(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=400)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class AnalysisSummaryAPIView(APIView):
+    """
+    GET /api/analysis/<uuid:pk>/summary/
+    Retorna resumen unificado para dashboard y PDF
+    """
+    def get(self, request, pk=None):
+        session_id = request.headers.get('X-Session-ID')
+        if not session_id:
+            return Response({'error': 'X-Session-ID requerido'}, status=400)
+
+        dataset = get_object_or_404(Dataset, id=pk, session_id=session_id)
+
+        try:
+            analysis = Analysis.objects.get(dataset=dataset)
+        except Analysis.DoesNotExist:
+            engine = AnalysisEngine(dataset.file.path)
+            analysis_data = engine.run_full_analysis()
+            analysis = Analysis.objects.create(
+                dataset=dataset,
+                statistics=analysis_data['statistics'],
+                correlations=analysis_data['correlations'],
+                data_quality=analysis_data['data_quality'],
+                anomalies=analysis_data['anomalies'],
+            )
+
+        summary = generate_analysis_summary(dataset, analysis)
+        return Response(summary)
