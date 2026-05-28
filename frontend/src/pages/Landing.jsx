@@ -92,22 +92,22 @@ export default function Landing() {
   }
 
   const handleUpload = async () => {
-    if (!file) {
-      setError('Selecciona un archivo primero')
-      return
-    }
-
-    setUploading(true)
-    setError(null)
-
-    try {
-      const response = await datasetsAPI.upload(file)
-      navigate(`/dashboard/${response.data.id}`)
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Error al procesar el archivo CSV')
-      setUploading(false)
-    }
+  if (!file) {
+    setError('Selecciona un archivo primero')
+    return
   }
+
+  setUploading(true)
+  setError(null)
+
+  try {
+    const response = await datasetsAPI.upload(file)
+    navigate(`/dashboard/${response.data.id}`)
+  } catch (err) {
+    setError(err.response?.data?.detail || 'Error al procesar el archivo CSV')
+    setUploading(false)
+  }
+}
 
   const triggerFileInput = () => {
     document.getElementById('fileInput').click()

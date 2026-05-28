@@ -126,7 +126,7 @@ class SQLEngine:
             self.con.execute(f"CREATE TABLE data AS SELECT * FROM read_csv_auto('{self.csv_path}')")
             
             # Ejecutar query
-            result = self.con.execute(sql).fetch_all()
+            result = self.con.execute(sql).fetchall()
             columns = [desc[0] for desc in self.con.description]
             
             # Convertir a dict
@@ -155,3 +155,4 @@ class SQLEngine:
         
         finally:
             self.con.close()
+            

@@ -8,7 +8,8 @@ import ChatMessages from '../components/Chat/ChatMessages'
 import ChatInput from '../components/Chat/ChatInput'
 
 export default function Dashboard() {
-  const { sessionId: datasetId } = useParams()
+  const { datasetId } = useParams()
+  console.log('Dataset ID from URL:', datasetId)
   const { setCurrentDataset } = useStore()
   const [dataset, setDataset] = useState(null)
   const [analysis, setAnalysis] = useState(null)
@@ -67,25 +68,28 @@ export default function Dashboard() {
   }
 
   const handleSendMessage = async (message) => {
-    if (!message.trim()) return
+  if (!message.trim()) return
 
-    setSending(true)
-    try {
-      const response = await chatAPI.sendMessage(datasetId, message)
-
-      // backend devuelve: { message: <ChatMessage>, history: [...] }
-      const assistantMsg = response.data?.message
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', content: message },
-        assistantMsg ? { role: assistantMsg.role, content: assistantMsg.content } : assistantMsg,
-      ])
-    } catch (err) {
-      console.error('Error enviando mensaje:', err)
-    } finally {
-      setSending(false)
-    }
+  // Añadir mensaje del usuario inmediatamente
+  const userMsg = { role: 'user', content: message }
+  setMessages([...messages, userMsg])
+  
+  setSending(true)
+  try {
+    const response = await chatAPI.sendMessage(datasetId, message)
+    // Añadir respuesta del asistente
+    setMessages(prev => [...prev, response.data])
+  } catch (err) {
+    console.error('Error enviando mensaje:', err)
+    // Añadir mensaje de error
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: 'Error: No pude procesar tu pregunta. Intenta de nuevo.'
+    }])
+  } finally {
+    setSending(false)
   }
+}
 
   if (loading) {
     return (

@@ -1,5 +1,4 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -63,9 +62,9 @@ class DatasetUploadView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class DatasetViewSet(viewsets.ViewSet):
     """ViewSet para operaciones CRUD de datasets"""
-    renderer_classes = [JSONRenderer]
     
     def list(self, request):
         """Listar datasets de sesión"""
@@ -80,21 +79,38 @@ class DatasetViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Obtener dataset"""
         session_id = request.headers.get('X-Session-ID')
-        dataset = get_object_or_404(Dataset, id=pk, session_id=session_id)
-        serializer = DatasetDetailSerializer(dataset)
-        return Response(serializer.data)
+        if not session_id:
+            return Response(
+                {'error': 'X-Session-ID requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            dataset = get_object_or_404(Dataset, id=pk, session_id=session_id)
+            serializer = DatasetDetailSerializer(dataset)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {'error': f'Dataset no encontrado: {str(e)}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
     
     def destroy(self, request, pk=None):
         """Borrar dataset"""
         session_id = request.headers.get('X-Session-ID')
-        dataset = get_object_or_404(Dataset, id=pk, session_id=session_id)
-        dataset.file.delete()
-        dataset.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    def destroy(self, request, pk=None):
-        """Borrar dataset"""
-        session_id = request.headers.get('X-Session-ID')
-        dataset = get_object_or_404(Dataset, id=pk, session_id=session_id)
-        dataset.file.delete()
-        dataset.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if not session_id:
+            return Response(
+                {'error': 'X-Session-ID requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            dataset = get_object_or_404(Dataset, id=pk, session_id=session_id)
+            dataset.file.delete()
+            dataset.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(
+                {'error': f'Error borrando dataset: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
