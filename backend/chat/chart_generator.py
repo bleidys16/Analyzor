@@ -80,6 +80,18 @@ class ChartGenerator:
         }
     
     @staticmethod
+    def _create_single_value_chart(data: List[Dict], col: str) -> Dict[str, Any]:
+        """Crea un indicador visual para un solo valor numérico"""
+        val = float(list(data[0].values())[0])
+        return {
+            'type': 'bar',
+            'title': col.replace('_', ' ').title(),
+            'data': [{'name': col.replace('_', ' ').title(), 'value': val}],
+            'x_axis': 'Métrica',
+            'y_axis': 'Valor',
+        }
+
+    @staticmethod
     def _create_distribution_chart(data: List[Dict], col: str) -> Dict[str, Any]:
         """Crea gráfico de distribución (histograma)"""
         values = []
@@ -90,6 +102,9 @@ class ChartGenerator:
         
         if not values:
             return {'type': 'text', 'message': f'No hay valores numéricos en {col}'}
+        
+        if len(values) == 1:
+            return ChartGenerator._create_single_value_chart(data, col)
         
         # Crear bins
         min_val = min(values)

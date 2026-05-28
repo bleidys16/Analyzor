@@ -1,5 +1,8 @@
 from django.urls import path
-from . import views
+from rest_framework.routers import SimpleRouter
+from .views import MLModelViewSet
 
-urlpatterns = [
-]
+router = SimpleRouter()
+router.register(r'', MLModelViewSet, basename='model')
+
+urlpatterns = router.urls

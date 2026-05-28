@@ -6,6 +6,7 @@ import { chatAPI } from '../api/chat'
 import { useStore } from '../store/store'
 import ChatMessages from '../components/Chat/ChatMessages'
 import ChatInput from '../components/Chat/ChatInput'
+import MLPanel from '../components/ML/MLPanel'
 
 export default function Dashboard() {
   const { datasetId } = useParams()
@@ -526,6 +527,8 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* En el return, antes del chat: */}
+          {dataset && <MLPanel datasetId={datasetId} columns={dataset.columns} />}
           {/* Right: Chat */}
           <div style={{
             background: '#ffffff',
