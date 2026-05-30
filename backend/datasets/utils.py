@@ -1,6 +1,18 @@
+import math
 import pandas as pd
 from datetime import timedelta
 from django.utils import timezone
+
+
+def _sanitize(obj):
+    """Convierte NaN/Inf a None para JSON válido en PostgreSQL"""
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_sanitize(v) for v in obj]
+    elif isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    return obj
 
 def validate_csv(file):
     """Valida que sea CSV válido"""
@@ -32,8 +44,8 @@ def process_csv(file):
             else:
                 dtypes[col] = 'string'
         
-        # Preview (primeras 100 filas) - reemplazar NaN con None para JSON válido
-        preview_data = df.head(100).where(pd.notna(df), None).to_dict(orient='records')
+        # Preview (primeras 100 filas)
+        preview_data = _sanitize(df.head(100).to_dict(orient='records'))
         
         return {
             'columns': columns,
