@@ -32,8 +32,8 @@ def process_csv(file):
             else:
                 dtypes[col] = 'string'
         
-        # Preview (primeras 100 filas)
-        preview_data = df.head(100).to_dict(orient='records')
+        # Preview (primeras 100 filas) - reemplazar NaN con None para JSON válido
+        preview_data = df.head(100).where(pd.notna(df), None).to_dict(orient='records')
         
         return {
             'columns': columns,
