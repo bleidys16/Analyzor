@@ -2,6 +2,7 @@ import pandas as pd
 import duckdb
 import json
 import time
+import requests
 from typing import Dict, List, Any
 import numpy as np
 
@@ -122,8 +123,19 @@ class SQLEngine:
         start_time = time.time()
         
         try:
+            # Descargar CSV desde Supabase si es URL
+            if self.csv_path.startswith('http'):
+                response = requests.get(self.csv_path)
+                csv_content = response.text
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                    f.write(csv_content)
+                    temp_path = f.name
+            else:
+                temp_path = self.csv_path
+            
             # Cargar CSV en memoria
-            self.con.execute(f"CREATE TABLE data AS SELECT * FROM read_csv_auto('{self.csv_path}')")
+            self.con.execute(f"CREATE TABLE data AS SELECT * FROM read_csv_auto('{temp_path}')")
             
             # Ejecutar query
             result = self.con.execute(sql).fetchall()
