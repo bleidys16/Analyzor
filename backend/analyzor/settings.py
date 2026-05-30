@@ -91,6 +91,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5174",
 ]
 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^https://analyzor-.*\.vercel\.app$',
+]
+
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -115,6 +119,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
+    "https://analyzor.vercel.app",
+    "https://analyzor-97t9zl99w-bleidys-projects.vercel.app",
 ]
 
 CSRF_COOKIE_SECURE = False  # Para desarrollo sin HTTPS
