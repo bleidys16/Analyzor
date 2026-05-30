@@ -22,7 +22,7 @@ import csv
 
 # ─── Colores corporativos ───
 C_PRIMARY = colors.HexColor('#111827')
-C_ACCENT = colors.HexColor('#6366f1')
+C_ACCENT = colors.HexColor('#ef4444')
 C_MUTED = colors.HexColor('#6b7280')
 C_BG_HEADER = colors.HexColor('#1e293b')
 C_BORDER = colors.HexColor('#e5e7eb')
