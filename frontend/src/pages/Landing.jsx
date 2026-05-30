@@ -104,7 +104,7 @@ export default function Landing() {
     const response = await datasetsAPI.upload(file)
     navigate(`/dashboard/${response.data.id}`)
   } catch (err) {
-    setError(err.response?.data?.detail || 'Error al procesar el archivo CSV')
+    setError(err.response?.data?.error || err.response?.data?.detail || 'Error al procesar el archivo CSV')
     setUploading(false)
   }
 }

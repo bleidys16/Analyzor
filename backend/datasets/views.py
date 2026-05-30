@@ -40,23 +40,29 @@ class DatasetUploadView(APIView):
             return Response({'error': processed['error']}, status=status.HTTP_400_BAD_REQUEST)
         
         # Crear dataset
-        file.seek(0)
-        dataset = Dataset.objects.create(
-            session_id=session_id,
-            name=file.name.replace('.csv', ''),
-            file=file,
-            columns=processed['columns'],
-            rows_count=processed['rows_count'],
-            file_size=processed['file_size'],
-            dtypes=processed['dtypes'],
-            expires_at=get_expiration_time()
-        )
-        
-        # Crear preview
-        DatasetPreview.objects.create(
-            dataset=dataset,
-            data=processed['preview_data']
-        )
+        try:
+            file.seek(0)
+            dataset = Dataset.objects.create(
+                session_id=session_id,
+                name=file.name.replace('.csv', ''),
+                file=file,
+                columns=processed['columns'],
+                rows_count=processed['rows_count'],
+                file_size=processed['file_size'],
+                dtypes=processed['dtypes'],
+                expires_at=get_expiration_time()
+            )
+            
+            # Crear preview
+            DatasetPreview.objects.create(
+                dataset=dataset,
+                data=processed['preview_data']
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error guardando dataset: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         serializer = DatasetDetailSerializer(dataset)
         return Response(serializer.data, status=status.HTTP_201_CREATED)

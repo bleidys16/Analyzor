@@ -37,7 +37,7 @@ export default function Dashboard() {
         
         await loadChatHistory()
       } catch (err) {
-        setError(err.response?.data?.detail || 'Error al cargar datos')
+        setError(err.response?.data?.error || err.response?.data?.detail || 'Error al cargar datos')
       } finally {
         setLoading(false)
       }
