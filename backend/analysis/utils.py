@@ -1,3 +1,15 @@
+import tempfile
+
+
+def get_csv_tempfile(dataset):
+    """Lee el CSV desde el storage de Django y lo escribe a un archivo temporal"""
+    content = dataset.file.read()
+    f = tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False)
+    f.write(content)
+    f.close()
+    return f.name
+
+
 def generate_analysis_summary(dataset, analysis):
     if not analysis:
         return None

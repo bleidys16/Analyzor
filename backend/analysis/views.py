@@ -12,7 +12,7 @@ from datasets.models import Dataset
 from .models import Analysis, Query
 from .serializers import AnalysisSerializer, QuerySerializer
 from .engines import AnalysisEngine, SQLEngine
-from .utils import generate_analysis_summary
+from .utils import generate_analysis_summary, get_csv_tempfile
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -35,7 +35,7 @@ class AutoAnalyzeAPIView(APIView):
         try:
             dataset = get_object_or_404(Dataset, id=dataset_id, session_id=session_id)
 
-            engine = AnalysisEngine(dataset.file.path)
+            engine = AnalysisEngine(get_csv_tempfile(dataset))
             analysis_data = engine.run_full_analysis()
 
             analysis, _created = Analysis.objects.update_or_create(
@@ -79,7 +79,7 @@ class QueryAPIView(APIView):
         try:
             dataset = get_object_or_404(Dataset, id=dataset_id, session_id=session_id)
 
-            engine = SQLEngine(dataset.file.path)
+            engine = SQLEngine(get_csv_tempfile(dataset))
             result = engine.execute(sql)
 
             query = Query.objects.create(
@@ -121,7 +121,7 @@ class AnalysisDetailAPIView(APIView):
         try:
             analysis = Analysis.objects.get(dataset=dataset)
         except Analysis.DoesNotExist:
-            engine = AnalysisEngine(dataset.file.path)
+            engine = AnalysisEngine(get_csv_tempfile(dataset))
             analysis_data = engine.run_full_analysis()
             analysis = Analysis.objects.create(
                 dataset=dataset,
@@ -154,7 +154,7 @@ class ColumnDistributionsAPIView(APIView):
 
         try:
             dataset = get_object_or_404(Dataset, id=dataset_id, session_id=session_id)
-            df = pd.read_csv(dataset.file.path)
+            df = pd.read_csv(get_csv_tempfile(dataset))
             total_rows = len(df)
 
             numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
@@ -315,7 +315,7 @@ class AnalysisSummaryAPIView(APIView):
         try:
             analysis = Analysis.objects.get(dataset=dataset)
         except Analysis.DoesNotExist:
-            engine = AnalysisEngine(dataset.file.path)
+            engine = AnalysisEngine(get_csv_tempfile(dataset))
             analysis_data = engine.run_full_analysis()
             analysis = Analysis.objects.create(
                 dataset=dataset,

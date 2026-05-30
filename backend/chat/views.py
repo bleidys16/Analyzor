@@ -12,6 +12,7 @@ from analysis.engines import SQLEngine
 from chat.chart_generator import ChartGenerator
 from chat.fallback_sql import FallbackSQLGenerator
 import pandas as pd
+from analysis.utils import get_csv_tempfile
 
 
 @api_view(['POST'])
@@ -83,7 +84,7 @@ def send_message(request):
             sql_fixed = sql_fixed.replace('FROM dataset', 'FROM data')
             sql_fixed = sql_fixed.replace('FROM datos', 'FROM data')
                     
-            engine = SQLEngine(dataset.file.path)
+            engine = SQLEngine(get_csv_tempfile(dataset))
             result = engine.execute(sql_fixed)
             
             if not result.get('error'):
@@ -109,7 +110,7 @@ def send_message(request):
     else:
         # Si no se pudo generar SQL, responder con datos disponibles
         try:
-            df = pd.read_csv(dataset.file.path)
+            df = pd.read_csv(get_csv_tempfile(dataset))
             context = f"Dataset con {len(df)} filas y {len(df.columns)} columnas. Columnas: {', '.join(columns_list)}"
             
             if used_fallback:
@@ -227,7 +228,7 @@ def message(self, request):
         # Si generó SQL válido, ejecutar
         if is_valid_sql:
             try:
-                engine = SQLEngine(dataset.file.path)
+                engine = SQLEngine(get_csv_tempfile(dataset))
                 result = engine.execute(sql)
                 
                 if not result.get('error'):
@@ -253,7 +254,7 @@ def message(self, request):
         else:
             # Si no es SQL válido, aún así responder
             try:
-                df = pd.read_csv(dataset.file.path)
+                df = pd.read_csv(get_csv_tempfile(dataset))
                 context = f"Dataset con {len(df)} filas y {len(df.columns)} columnas"
                 response_text = ai_provider.answer_question(user_message, context)
             except Exception as e:
