@@ -1,17 +1,13 @@
 import { useState, useRef } from 'react'
 
-export default function ChatInput({ onSend, datasetId }) {
+export default function ChatInput({ onSend, sending = false }) {
   const [input, setInput] = useState('')
-  const [sending, setSending] = useState(false)
   const inputRef = useRef(null)
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!input.trim() || sending) return
-
-    setSending(true)
-    await onSend(input)
+    onSend(input)
     setInput('')
-    setSending(false)
     inputRef.current?.focus()
   }
 
@@ -22,36 +18,42 @@ export default function ChatInput({ onSend, datasetId }) {
     }
   }
 
+  const [focused, setFocused] = useState(false)
+
   return (
     <div style={{
       display: 'flex',
       gap: '8px',
       paddingTop: '12px',
       borderTop: '1px solid var(--card-border)',
+      flexShrink: 0,
     }}>
       <div style={{
         flex: 1,
         display: 'flex',
         alignItems: 'center',
         background: 'var(--code-bg)',
-        border: '1px solid var(--card-border)',
-        borderRadius: '10px',
+        border: `1px solid ${focused ? 'var(--accent)' : 'var(--card-border)'}`,
+        borderRadius: '12px',
         padding: '4px 4px 4px 14px',
         transition: 'border-color 0.2s ease',
+        boxShadow: focused ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none',
       }}>
         <input
           ref={inputRef}
           type="text"
-          placeholder="Pregunta sobre tus datos..."
+          placeholder="Escribe tu pregunta..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           disabled={sending}
           style={{
             flex: 1,
             border: 'none',
             background: 'transparent',
-            padding: '8px 0',
+            padding: '10px 0',
             fontSize: '13px',
             fontFamily: '"Space Grotesk", sans-serif',
             color: 'var(--text-main)',
@@ -62,8 +64,8 @@ export default function ChatInput({ onSend, datasetId }) {
           onClick={handleSend}
           disabled={sending || !input.trim()}
           style={{
-            width: '34px',
-            height: '34px',
+            width: '36px',
+            height: '36px',
             borderRadius: '8px',
             border: 'none',
             background: input.trim() && !sending ? 'var(--accent)' : 'var(--card-border)',

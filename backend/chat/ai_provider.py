@@ -17,38 +17,52 @@ class AIProvider:
     
     def generate_sql(self, question: str, schema: str) -> str:
         """Convierte pregunta en lenguaje natural a SQL"""
-        prompt = f"""You are a SQL expert. Given a database schema and a question in natural language, generate a valid SQL query.
-Return ONLY the SQL query (no markdown, no explanation).
+        system = """You are a SQL expert. Your ONLY task is to convert natural language questions into valid SQL queries.
 
-Rules:
-- Always query the table named: data
+RULES (strict):
+- Return ONLY the raw SQL query — no markdown, no backticks, no code fences, no explanations
+- The table name is always: data
 - Only generate SELECT queries
-- Quote column names using double quotes if needed
-- Never return placeholders like 'table_name'
+- If you cannot generate SQL, return exactly: Error: cannot generate SQL
+- Never return text like "The average is calculated by..."
 
-Schema:
+EXAMPLES:
+Question: "¿Cuál es la categoría más vendida?"
+SQL: SELECT product_category, SUM(quantity) as total FROM data GROUP BY product_category ORDER BY total DESC LIMIT 1
+
+Question: "¿Cuál es el valor medio de venta?"
+SQL: SELECT AVG(total_sale) FROM data
+
+Question: "¿Cuántas órdenes hay?"
+SQL: SELECT COUNT(*) FROM data
+
+Question: "muestra los primeros 10 registros"
+SQL: SELECT * FROM data LIMIT 10"""
+
+        user_msg = f"""Schema:
 {schema}
-
-Examples:
-- "¿Cuál es la categoría más vendida?" -> SELECT product_category, SUM(quantity) as total FROM data GROUP BY product_category ORDER BY total DESC LIMIT 1
-- "¿Cuál es el valor medio de venta?" -> SELECT AVG(total_sale) FROM data
-- "¿Cuántas órdenes hay?" -> SELECT COUNT(*) FROM data
 
 Question: {question}
 
 SQL:"""
 
         if self.env == 'production' and self.client:
-            return self._generate_with_groq(prompt)
+            return self._generate_with_groq(system, user_msg)
         else:
-            return self._generate_with_ollama(prompt)
+            return self._generate_with_ollama(f"{system}\n\n{user_msg}")
     
     def answer_question(self, question: str, context: str) -> str:
         """Responde una pregunta con contexto de datos"""
-        prompt = f"""You are a data analyst assistant. Answer the user's question based on the data context provided.
-Be concise and professional. Provide insights if relevant.
+        system = """You are a data analyst assistant. Answer the user's question based ONLY on the actual data provided in the context.
 
-Data Context:
+RULES:
+- Be concise and professional. Provide specific numbers and insights.
+- If the context contains query results, use those numbers directly.
+- NEVER give theoretical explanations like "the average is calculated by summing values and dividing by count".
+- NEVER say "I don't have access to the values". You DO have the data context.
+- If the context only lists column names (no actual row data), tell the user what columns are available and suggest specific questions they can ask."""
+
+        user_msg = f"""Data Context:
 {context}
 
 Question: {question}
@@ -56,19 +70,22 @@ Question: {question}
 Answer:"""
         
         if self.env == 'production' and self.client:
-            return self._generate_with_groq(prompt)
+            return self._generate_with_groq(system, user_msg)
         else:
-            return self._generate_with_ollama(prompt)
+            return self._generate_with_ollama(f"{system}\n\n{user_msg}")
     
-    def _generate_with_groq(self, prompt: str) -> str:
-        """Usa Groq API"""
+    def _generate_with_groq(self, system: str, user: str) -> str:
+        """Usa Groq API con system + user messages"""
         try:
             if not self.client:
                 return "Error: Groq no inicializado"
             
             completion = self.client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user}
+                ],
                 max_tokens=1000,
                 temperature=0.3
             )

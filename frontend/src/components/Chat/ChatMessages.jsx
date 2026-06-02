@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { BarChart, Bar, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 const chartColors = ['#ef4444', '#f43f5e', '#fb7185', '#fda4af']
@@ -112,8 +113,23 @@ const UserIcon = () => (
   </svg>
 )
 
-export default function ChatMessages({ messages = [], sending = false }) {
+const SUGGESTIONS = [
+  '¿Cuál es el promedio de los datos?',
+  '¿Cuáles son los valores máximos y mínimos?',
+  '¿Cómo se distribuyen los datos?',
+  'Muéstrame un resumen general',
+  '¿Hay alguna correlación entre columnas?',
+]
+
+export default function ChatMessages({ messages = [], sending = false, onSend }) {
   const validMessages = (messages || []).filter(msg => msg && msg.role)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.scrollTop = ref.current.scrollHeight
+    }
+  }, [messages, sending])
 
   if (validMessages.length === 0 && !sending) {
     return (
@@ -124,39 +140,65 @@ export default function ChatMessages({ messages = [], sending = false }) {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '300px',
-        gap: '16px',
+        gap: '20px',
+        padding: '40px 20px',
       }}>
         <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '12px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '16px',
           background: 'var(--accent-glow)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
-          Pregúntale a la IA sobre tus datos
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '240px' }}>
-          {['¿Cuál es el promedio de ventas?', '¿Qué colores están correlacionados?', 'Muéstrame los outliers'].map((suggestion, i) => (
-            <div key={i} style={{
-              padding: '8px 12px',
-              background: 'var(--code-bg)',
-              border: '1px solid var(--card-border)',
-              borderRadius: '8px',
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              textAlign: 'center',
-            }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-main)', fontSize: '15px', margin: '0 0 4px 0', fontWeight: 600 }}>
+            ¿Qué quieres saber?
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>
+            Pregúntale a la IA sobre tus datos o elige una sugerencia
+          </p>
+        </div>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          justifyContent: 'center',
+          maxWidth: '400px',
+        }}>
+          {SUGGESTIONS.map((suggestion, i) => (
+            <button
+              key={i}
+              onClick={() => onSend?.(suggestion)}
+              style={{
+                padding: '8px 14px',
+                background: 'var(--code-bg)',
+                border: '1px solid var(--card-border)',
+                borderRadius: '20px',
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: '"Space Grotesk", sans-serif',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--accent)'
+                e.currentTarget.style.color = 'white'
+                e.currentTarget.style.borderColor = 'var(--accent)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--code-bg)'
+                e.currentTarget.style.color = 'var(--text-muted)'
+                e.currentTarget.style.borderColor = 'var(--card-border)'
+              }}
+            >
               {suggestion}
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -164,10 +206,13 @@ export default function ChatMessages({ messages = [], sending = false }) {
   }
 
   return (
-    <div style={{
+    <div ref={ref} style={{
       display: 'flex',
       flexDirection: 'column',
       gap: '16px',
+      flex: 1,
+      overflowY: 'auto',
+      paddingRight: '4px',
     }}>
       {validMessages.map((msg, idx) => (
         <div key={idx} style={{
@@ -189,9 +234,7 @@ export default function ChatMessages({ messages = [], sending = false }) {
           }}>
             {msg.role === 'user' ? <UserIcon /> : <AiIcon />}
           </div>
-          <div style={{
-            maxWidth: '80%',
-          }}>
+          <div style={{ maxWidth: '80%', minWidth: 0 }}>
             <div style={{
               padding: '10px 14px',
               borderRadius: '12px',
@@ -201,6 +244,8 @@ export default function ChatMessages({ messages = [], sending = false }) {
               lineHeight: '1.55',
               border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
               boxShadow: msg.role === 'user' ? '0 2px 8px rgba(239, 68, 68, 0.2)' : 'none',
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'break-word',
             }}>
               {msg.content}
             </div>

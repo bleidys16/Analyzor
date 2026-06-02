@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from django.shortcuts import get_object_or_404
@@ -38,6 +39,18 @@ class DatasetUploadView(APIView):
         
         if processed.get('error'):
             return Response({'error': processed['error']}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Evitar duplicados: mismo nombre, misma sesión, mismo día
+        file.seek(0)
+        today = timezone.now().date()
+        existing = Dataset.objects.filter(
+            session_id=session_id,
+            name=file.name.replace('.csv', ''),
+            created_at__date=today
+        ).first()
+        if existing:
+            serializer = DatasetDetailSerializer(existing)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         
         # Crear dataset
         try:

@@ -1,0 +1,41 @@
+order_id,customer_name,email,product_category,product_name,quantity,price_per_unit,total_sale,order_date,city,country,payment_method,status,customer_lifetime_value
+ORD001,Juan García,juan.garcia@email.com,Electronics,Laptop Dell,1,899.99,899.99,2026-01-15,Madrid,Spain,Credit Card,Completed,2850.00
+ORD002,María López,maria.lopez@email.com,Clothing,T-Shirt Cotton,5,19.99,99.95,2026-01-16,Barcelona,Spain,Debit Card,Completed,450.50
+ORD003,Carlos Martínez,carlos.m@email.com,Electronics,USB-C Cable,10,9.99,99.90,2026-01-17,Valencia,Spain,PayPal,Completed,320.15
+ORD004,Ana Fernández,ana.f@email.com,Home,Pillow Memory Foam,2,45.50,91.00,2026-01-18,Sevilla,Spain,Credit Card,Completed,275.00
+ORD005,Pedro Sánchez,pedro.s@email.com,Electronics,Wireless Mouse,3,24.99,74.97,2026-01-19,Madrid,Spain,Credit Card,Pending,450.75
+ORD006,Laura González,laura.g@email.com,Clothing,Jeans Premium,2,59.99,119.98,2026-01-20,Barcelona,Spain,Debit Card,Completed,1250.00
+ORD007,Miguel Rodríguez,miguel.r@email.com,Home,Bed Sheets Set,1,89.99,89.99,2026-01-21,Madrid,Spain,Credit Card,Completed,500.25
+ORD008,Isabel Díaz,isabel.d@email.com,Electronics,Monitor 27" 4K,1,349.99,349.99,2026-01-22,Valencia,Spain,Credit Card,Completed,1850.00
+ORD009,Diego López,diego.l@email.com,Clothing,Shirt Casual,4,29.99,119.96,2026-01-23,Sevilla,Spain,PayPal,Completed,680.50
+ORD010,Rosa Martín,rosa.m@email.com,Home,Lamp LED Modern,6,19.99,119.94,2026-01-24,Barcelona,Spain,Debit Card,Completed,450.00
+ORD011,Francisco Ruiz,francisco.r@email.com,Electronics,Keyboard Mechanical,2,79.99,159.98,2026-01-25,Madrid,Spain,Credit Card,Completed,750.25
+ORD012,Elena Torres,elena.t@email.com,Clothing,Dress Elegant,1,149.99,149.99,2026-01-26,Barcelona,Spain,Credit Card,Completed,2100.00
+ORD013,Antonio Gómez,antonio.g@email.com,Home,Sofa 3-Seat,1,599.99,599.99,2026-01-27,Valencia,Spain,Credit Card,Cancelled,0.00
+ORD014,Juana López,juana.l@email.com,Electronics,Headphones Pro,2,129.99,259.98,2026-01-28,Madrid,Spain,PayPal,Completed,1200.00
+ORD015,Rafael Jiménez,rafael.j@email.com,Clothing,Jacket Leather,1,199.99,199.99,2026-01-29,Sevilla,Spain,Credit Card,Completed,1850.00
+ORD016,Carmen Vega,carmen.v@email.com,Home,Coffee Table,2,79.99,159.98,2026-01-30,Barcelona,Spain,Debit Card,Completed,650.00
+ORD017,Joaquín Peña,joaquin.p@email.com,Electronics,Speaker Bluetooth,3,34.99,104.97,2026-02-01,Madrid,Spain,Credit Card,Completed,480.50
+ORD018,Margarita Blanco,margarita.b@email.com,Clothing,Shorts Summer,7,15.99,111.93,2026-02-02,Valencia,Spain,PayPal,Completed,380.00
+ORD019,Enrique Iglesias,enrique.i@email.com,Home,Plant Pot Set,5,12.99,64.95,2026-02-03,Barcelona,Spain,Credit Card,Completed,220.50
+ORD020,Victoria Castro,victoria.c@email.com,Electronics,Power Bank 30000mAh,4,39.99,159.96,2026-02-04,Madrid,Spain,Debit Card,Completed,850.00
+ORD021,Salvador Ortiz,salvador.o@email.com,Clothing,Sweater Wool,2,69.99,139.98,2026-02-05,Sevilla,Spain,Credit Card,Completed,1100.25
+ORD022,Dolores Moreno,dolores.m@email.com,Home,Curtains Blackout,3,34.99,104.97,2026-02-06,Barcelona,Spain,Credit Card,Completed,450.00
+ORD023,Ángel Ramos,angel.r@email.com,Electronics,SSD 1TB NVMe,1,99.99,99.99,2026-02-07,Madrid,Spain,PayPal,Completed,750.50
+ORD024,Teresa Soto,teresa.s@email.com,Clothing,Pants Yoga,4,34.99,139.96,2026-02-08,Valencia,Spain,Credit Card,Completed,680.00
+ORD025,Ramón Delgado,ramon.d@email.com,Home,Bookshelf Modern,1,149.99,149.99,2026-02-09,Barcelona,Spain,Debit Card,Completed,900.25
+ORD026,Francisca Vidal,francisca.v@email.com,Electronics,Monitor 24" Full HD,1,199.99,199.99,2026-02-10,Madrid,Spain,Credit Card,Completed,1450.00
+ORD027,Benito Navas,benito.n@email.com,Clothing,Cap Sports,6,14.99,89.94,2026-02-11,Sevilla,Spain,PayPal,Completed,350.50
+ORD028,Consuelo Rojas,consuelo.r@email.com,Home,Rug Persian Style,1,199.99,199.99,2026-02-12,Barcelona,Spain,Credit Card,Completed,1500.00
+ORD029,Dionisio Cruz,dionisio.c@email.com,Electronics,Graphics Card RTX 4060,1,299.99,299.99,2026-02-13,Madrid,Spain,Credit Card,Completed,2100.00
+ORD030,Eulalia Torres,eulalia.t@email.com,Clothing,Socks Premium,12,8.99,107.88,2026-02-14,Valencia,Spain,Debit Card,Completed,400.00
+ORD031,Fabio Ibáñez,fabio.i@email.com,Home,Mirror Gold Frame,2,44.99,89.98,2026-02-15,Barcelona,Spain,Credit Card,Completed,500.50
+ORD032,Genoveva Lara,genoveva.l@email.com,Electronics,Webcam 4K Pro,1,149.99,149.99,2026-02-16,Madrid,Spain,PayPal,Completed,850.00
+ORD033,Herminio Valle,herminio.v@email.com,Clothing,Belt Leather,3,24.99,74.97,2026-02-17,Sevilla,Spain,Credit Card,Completed,450.25
+ORD034,Imelda Oviedo,imelda.o@email.com,Home,Desk Standing,1,299.99,299.99,2026-02-18,Barcelona,Spain,Credit Card,Completed,1800.00
+ORD035,Juvenal Pardo,juvenal.p@email.com,Electronics,Router WiFi 6,1,79.99,79.99,2026-02-19,Madrid,Spain,Debit Card,Completed,650.50
+ORD036,Kassandra Silva,kassandra.s@email.com,Clothing,Scarf Silk,5,19.99,99.95,2026-02-20,Valencia,Spain,Credit Card,Completed,550.00
+ORD037,Leopoldo Fuentes,leopoldo.f@email.com,Home,Night Stand,2,74.99,149.98,2026-02-21,Barcelona,Spain,PayPal,Completed,1100.25
+ORD038,Magdalena Herrera,magdalena.h@email.com,Electronics,Tablet 10" WiFi,1,249.99,249.99,2026-02-22,Madrid,Spain,Credit Card,Completed,1500.00
+ORD039,Nabor Mendez,nabor.m@email.com,Clothing,Underwear Set,8,9.99,79.92,2026-02-23,Sevilla,Spain,Credit Card,Completed,320.50
+ORD040,Obdulia Cortés,obdulia.c@email.com,Home,Ottoman Storage,1,129.99,129.99,2026-02-24,Barcelona,Spain,Debit Card,Completed,750.00

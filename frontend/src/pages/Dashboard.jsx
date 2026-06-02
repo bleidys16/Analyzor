@@ -24,6 +24,8 @@ export default function Dashboard() {
   const [sending, setSending] = useState(false)
   const [activeTab, setActiveTab] = useState('analysis')
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [allDatasets, setAllDatasets] = useState([])
+  const [showDatasetList, setShowDatasetList] = useState(false)
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
@@ -50,6 +52,19 @@ export default function Dashboard() {
         }
         
         await loadChatHistory()
+
+        try {
+          const allRes = await datasetsAPI.getAll()
+          const all = allRes.data || []
+          const seen = new Map()
+          for (const ds of all) {
+            const key = `${ds.name}_${ds.created_at?.slice(0, 10) || ''}`
+            if (!seen.has(key) || new Date(ds.created_at) > new Date(seen.get(key).created_at)) {
+              seen.set(key, ds)
+            }
+          }
+          setAllDatasets(Array.from(seen.values()))
+        } catch (_) {}
       } catch (err) {
         setError(err.response?.data?.detail || 'Error al cargar datos')
       } finally {
@@ -329,35 +344,62 @@ export default function Dashboard() {
                 <span>{(dataset?.file_size / 1024).toFixed(2)} KB</span>
               </p>
             </div>
-            
-            <button
-              onClick={handleExportPDF}
-              style={{
-                padding: '10px 16px',
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease',
-                opacity: 0.9,
-              }}
-              onMouseOver={(e) => e.target.style.opacity = '1'}
-              onMouseOut={(e) => e.target.style.opacity = '0.9'}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-              PDF
-            </button>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShowDatasetList(true)}
+                style={{
+                  padding: '10px 16px',
+                  background: 'var(--code-bg)',
+                  border: '1px solid var(--card-border)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  color: 'var(--text-main)',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'var(--card-border)' }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'var(--code-bg)' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                Historial
+              </button>
+
+              <button
+                onClick={handleExportPDF}
+                style={{
+                  padding: '10px 16px',
+                  background: 'var(--accent)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                  opacity: 0.9,
+                }}
+                onMouseOver={(e) => e.target.style.opacity = '1'}
+                onMouseOut={(e) => e.target.style.opacity = '0.9'}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                PDF
+              </button>
+            </div>
           </div>
 
           {/* TABS */}
@@ -411,12 +453,12 @@ export default function Dashboard() {
               padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              minHeight: '400px',
+              height: '550px',
             }}>
-              <ChatMessages messages={messages} sending={sending} />
+              <ChatMessages messages={messages} sending={sending} onSend={handleSendMessage} />
               <ChatInput 
                 onSend={handleSendMessage} 
-                datasetId={datasetId}
+                sending={sending}
               />
             </div>
           )}
@@ -465,6 +507,176 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* MODAL - DATASET LIST */}
+      {showDatasetList && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          zIndex: 999,
+        }}>
+          <style>{`
+            @keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes modal-slide-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            .modal-overlay { animation: modal-fade-in 0.15s ease; }
+            .modal-panel { animation: modal-slide-up 0.25s ease; }
+          `}</style>
+
+          <div className="modal-panel" style={{
+            background: 'var(--card-bg)',
+            width: '100%',
+            maxWidth: '600px',
+            borderRadius: '16px 16px 0 0',
+            padding: '24px',
+            maxHeight: '75vh',
+            overflowY: 'auto',
+            boxShadow: '0 -8px 30px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              paddingBottom: '16px',
+              borderBottom: '1px solid var(--card-border)',
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+              }}>
+                Mis Datasets ({allDatasets.length})
+              </h2>
+              <button
+                onClick={() => setShowDatasetList(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'var(--code-bg)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {allDatasets.map(ds => (
+                <div
+                  key={ds.id}
+                  onClick={() => {
+                    navigate(`/dashboard/${ds.id}`)
+                    setShowDatasetList(false)
+                  }}
+                  style={{
+                    background: ds.id === datasetId ? 'var(--accent-glow)' : 'var(--code-bg)',
+                    border: ds.id === datasetId ? '1px solid var(--accent)' : '1px solid var(--card-border)',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                  onMouseOver={(e) => {
+                    if (ds.id !== datasetId) {
+                      e.currentTarget.style.borderColor = 'var(--accent)'
+                      e.currentTarget.style.background = 'var(--card-bg)'
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (ds.id !== datasetId) {
+                      e.currentTarget.style.borderColor = 'var(--card-border)'
+                      e.currentTarget.style.background = 'var(--code-bg)'
+                    }
+                  }}
+                >
+                  {ds.id === datasetId && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '3px',
+                      background: 'var(--accent)',
+                    }} />
+                  )}
+
+                  <h4 style={{
+                    margin: '0 0 6px 0',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    color: ds.id === datasetId ? 'var(--accent)' : 'var(--text-main)',
+                  }}>
+                    {ds.name}
+                    {ds.id === datasetId && (
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        background: 'var(--accent)',
+                        color: 'white',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                      }}>
+                        actual
+                      </span>
+                    )}
+                  </h4>
+                  <p style={{
+                    margin: 0,
+                    fontSize: '12px',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    gap: '12px',
+                  }}>
+                    <span>{ds.rows_count?.toLocaleString() || 0} filas</span>
+                    <span>•</span>
+                    <span>{ds.columns?.length || 0} columnas</span>
+                    <span>•</span>
+                    <span>{new Date(ds.created_at).toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}</span>
+                  </p>
+                </div>
+              ))}
+              {allDatasets.length === 0 && (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', padding: '20px' }}>
+                  No hay otros datasets disponibles
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div
+            className="modal-overlay"
+            onClick={() => setShowDatasetList(false)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: -1,
+            }}
+          />
+        </div>
+      )}
     </>
   )
 }

@@ -9,14 +9,25 @@ class FallbackSQLGenerator:
     def generate(question: str, columns: list) -> Optional[str]:
         question_lower = question.lower().strip()
 
-        # Detectar columnas en la pregunta
-        matched_columns = [col for col in columns if col.lower() in question_lower]
+        # Detectar columnas en la pregunta - buscar coincidencias parciales
+        question_words = set(question_lower.split())
+        matched_columns = [col for col in columns if any(
+            word in col.lower() or col.lower() in word for word in question_words
+        )]
+        # Si no hay match con palabras individuales, intentar match inverso (frase en nombre)
+        if not matched_columns:
+            for col in columns:
+                col_parts = col.lower().replace('_', ' ').replace('-', ' ').split()
+                if any(part in question_lower for part in col_parts):
+                    matched_columns.append(col)
 
         # 1. Preguntas de promedio / media
         if any(word in question_lower for word in ['promedio', 'media', 'average', 'avg', 'mean']):
             if matched_columns:
                 col = matched_columns[0]
                 return f"SELECT AVG(\"{col}\") AS \"promedio_{col}\" FROM data"
+            if columns:
+                return f"SELECT AVG(\"{columns[0]}\") AS \"promedio\" FROM data"
             return None
 
         # 2. Preguntas de suma / total

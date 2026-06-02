@@ -62,6 +62,18 @@ def send_message(request):
     answer = None
     used_fallback = False
 
+    # Limpiar SQL de posibles bloques markdown
+    if sql:
+        sql = sql.strip()
+        import re as _re
+        m = _re.search(r'```(?:sql)?\s*(.*?)```', sql, _re.DOTALL | _re.IGNORECASE)
+        if m:
+            sql = m.group(1).strip()
+        # Extraer primer SELECT si hay texto alrededor
+        m = _re.search(r'(SELECT\s+.+)', sql, _re.DOTALL | _re.IGNORECASE)
+        if m:
+            sql = m.group(1).strip()
+
     # Verificar si el SQL del AI es válido o si el AI falló
     is_valid_sql = (
         sql and
@@ -74,7 +86,7 @@ def send_message(request):
         # Si la pregunta no parece analítica (ej: "hola"), responde sin ejecutar SQL
         content_norm = str(content).strip().lower()
         if content_norm in {'hola', 'hi', 'hello', 'buenas', 'buenos dias', 'buenas tardes'}:
-            answer = '¡Hola! Puedo ayudarte a analizar tu dataset. Por ejemplo: “¿cuáles son las 5 filas de X?”, “promedio de Y”, “correlación entre A y B”.'
+            answer = '¡Hola! Puedo ayudarte a analizar tu dataset. Puedes preguntarme sobre promedios, sumas, valores máximos y mínimos, correlaciones, distribuciones, o simplemente pedirme un resumen de los datos.'
         else:
             # Fallback: generar SQL local sin IA
             fallback_sql = FallbackSQLGenerator.generate(str(content).strip(), columns_list)
@@ -86,9 +98,8 @@ def send_message(request):
     if is_valid_sql:
         try:
             sql_fixed = sql
-            sql_fixed = sql_fixed.replace('FROM clientes', 'FROM data')
-            sql_fixed = sql_fixed.replace('FROM dataset', 'FROM data')
-            sql_fixed = sql_fixed.replace('FROM datos', 'FROM data')
+            import re
+            sql_fixed = re.sub(r'\bFROM\s+\w+', 'FROM data', sql_fixed, flags=re.IGNORECASE)
                     
             engine = SQLEngine(get_csv_tempfile(dataset))
             result = engine.execute(sql_fixed)
@@ -117,7 +128,12 @@ def send_message(request):
         # Si no se pudo generar SQL, responder con datos disponibles
         try:
             df = pd.read_csv(get_csv_tempfile(dataset))
-            context = f"Dataset con {len(df)} filas y {len(df.columns)} columnas. Columnas: {', '.join(columns_list)}"
+            preview_rows = df.head(5).to_string()
+            context = (
+                f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
+                f"Columnas: {', '.join(columns_list)}\n\n"
+                f"Primeras 5 filas:\n{preview_rows}"
+            )
             
             if used_fallback:
                 answer = FallbackSQLGenerator.generate_answer(str(content).strip(), {'data': [], 'columns': [], 'row_count': 0}, sql or '')
@@ -215,6 +231,17 @@ def message(self, request):
         response_text = None
         chart_config = None
         used_fallback = False
+
+        # Limpiar SQL de posibles bloques markdown
+        if sql:
+            sql = sql.strip()
+            import re as _re
+            m = _re.search(r'```(?:sql)?\s*(.*?)```', sql, _re.DOTALL | _re.IGNORECASE)
+            if m:
+                sql = m.group(1).strip()
+            m = _re.search(r'(SELECT\s+.+)', sql, _re.DOTALL | _re.IGNORECASE)
+            if m:
+                sql = m.group(1).strip()
         
         # Verificar si el SQL del AI es válido
         is_valid_sql = (
@@ -234,6 +261,8 @@ def message(self, request):
         # Si generó SQL válido, ejecutar
         if is_valid_sql:
             try:
+                import re
+                sql = re.sub(r'\bFROM\s+\w+', 'FROM data', sql, flags=re.IGNORECASE)
                 engine = SQLEngine(get_csv_tempfile(dataset))
                 result = engine.execute(sql)
                 
@@ -261,7 +290,12 @@ def message(self, request):
             # Si no es SQL válido, aún así responder
             try:
                 df = pd.read_csv(get_csv_tempfile(dataset))
-                context = f"Dataset con {len(df)} filas y {len(df.columns)} columnas"
+                preview_rows = df.head(5).to_string()
+                context = (
+                    f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
+                    f"Columnas: {', '.join(columns_list)}\n\n"
+                    f"Primeras 5 filas:\n{preview_rows}"
+                )
                 response_text = ai_provider.answer_question(user_message, context)
             except Exception as e:
                 response_text = f"Error al analizar datos: {str(e)}"

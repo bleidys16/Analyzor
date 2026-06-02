@@ -5,23 +5,12 @@ import { useStore } from '../store/store'
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts'
 import TopographicBackground from '../components/TopographicBackground'
 
-// Mock data for Distribution (Histogram)
-const distributionData = [
-  { name: '0-1k', count: 45 },
-  { name: '1k-2k', count: 120 },
-  { name: '2k-3k', count: 350 },
-  { name: '3k-4k', count: 280 },
-  { name: '4k-5k', count: 150 },
-  { name: '5k-6k', count: 90 },
-  { name: '6k-7k', count: 40 },
-]
-
-// Mock data for DuckDB SQL Query result (Sales by category)
-const sqlQueryResult = [
-  { name: 'Tecnología', ventas: 84000 },
-  { name: 'Muebles', ventas: 59000 },
-  { name: 'Oficina', ventas: 32000 },
-  { name: 'Moda', ventas: 45000 },
+// Mock data for statistics distribution (donut chart)
+const statsDistribution = [
+  { name: 'Media', value: 35 },
+  { name: 'Mediana', value: 28 },
+  { name: 'Desviación Est.', value: 20 },
+  { name: 'Percentil 95', value: 17 },
 ]
 
 const techStack = [
@@ -41,6 +30,8 @@ export default function Landing() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [dragActive, setDragActive] = useState(false)
+  const [datasets, setDatasets] = useState([])
+  const [datasetsLoading, setDatasetsLoading] = useState(true)
 
   // Theme state (Light is default)
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -52,6 +43,28 @@ export default function Landing() {
       setIsDarkMode(true)
     }
   }, [])
+
+  useEffect(() => {
+    loadDatasets()
+  }, [])
+
+  const loadDatasets = async () => {
+    try {
+      const response = await datasetsAPI.getAll()
+      const all = response.data || []
+      const seen = new Map()
+      for (const ds of all) {
+        const key = `${ds.name}_${ds.created_at?.slice(0, 10) || ''}`
+        if (!seen.has(key) || new Date(ds.created_at) > new Date(seen.get(key).created_at)) {
+          seen.set(key, ds)
+        }
+      }
+      setDatasets(Array.from(seen.values()))
+    } catch (_) {
+    } finally {
+      setDatasetsLoading(false)
+    }
+  }
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light')
@@ -186,18 +199,7 @@ export default function Landing() {
         )}
       </button>
 
-      {/* Radial ambient glow in background */}
-      <div style={{
-        position: 'absolute',
-        top: '-300px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '1400px',
-        height: '1200px',
-        background: 'radial-gradient(ellipse at center top, rgba(239, 68, 68, 0.50) 0%, transparent 65%)',
-        pointerEvents: 'none',
-        zIndex: 0,
-      }} />
+      {/* Radial ambient glow behind hero title */}
 
       {/* Styles block for hover, animations and media queries */}
       <style>{`
@@ -321,196 +323,126 @@ export default function Landing() {
           grid-template-columns: repeat(3, 1fr);
           gap: 20px;
         }
-        .hero-title {
-          font-size: 72px;
-          font-weight: 700;
-          line-height: 1.05;
-          letter-spacing: -2.5px;
-          margin-bottom: 20px;
-        }
-        
-        @media (max-width: 900px) {
-          .grid-2 { grid-template-columns: 1fr; }
-          .grid-12 { grid-template-columns: 1fr; }
-          .grid-12 .col-7 { grid-column: span 1; }
-          .grid-12 .col-5 { grid-column: span 1; }
-          .grid-3 { grid-template-columns: 1fr; }
-          .hero-title { font-size: 48px; letter-spacing: -1px; }
-        }
-      `}</style>
+          .hero-title {
+            font-size: clamp(32px, 6vw, 72px);
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: -2.5px;
+            margin-bottom: 20px;
+          }
+          
+          @media (max-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-12 { grid-template-columns: 1fr; }
+            .grid-12 .col-7 { grid-column: span 1; }
+            .grid-12 .col-5 { grid-column: span 1; }
+            .grid-3 { grid-template-columns: 1fr; }
+            .hero-title { font-size: clamp(24px, 7vw, 48px) !important; letter-spacing: -1px; }
+          }
+        `}</style>
 
-      {/* Fullscreen Hero Wrapper */}
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingBottom: '40px' }}>
+        {/* Hero Wrapper - exactly fills the viewport */}
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
 
-        {/* Centered Premium Branding Header */}
-        <header style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '20px',
-          position: 'relative',
-          zIndex: 10,
-        }}>
-          <div style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--text-main)' }}>
-            ANALYZOR<span style={{ color: 'var(--accent)' }}>.</span>
-          </div>
-        </header>
-
-        {/* Hero Section */}
-        <section style={{
-          maxWidth: '850px',
-          margin: '20px auto 40px',
-          textAlign: 'center',
-          padding: '0 20px',
-          position: 'relative',
-          zIndex: 10,
-        }}>
-
-
-          {/* Heading */}
-          <h1 className="hero-title">
-            Habla con tus datos.<br />
-            <span style={{ fontStyle: 'italic', fontWeight: 300, color: 'var(--text-muted)' }}>Construye inteligencia.</span>
-          </h1>
-
-          {/* Subtitle */}
-          <p style={{
-            fontSize: '18px',
-            color: 'var(--text-muted)',
-            lineHeight: 1.6,
-            maxWidth: '680px',
-            margin: '0 auto 40px',
+          {/* Centered Premium Branding Header */}
+          <header style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '20px',
+            position: 'relative',
+            zIndex: 10,
+            flexShrink: 0,
           }}>
-            Consultas SQL, perfilado automático y análisis estadístico avanzado impulsado por IA.
+            <img
+              src={isDarkMode ? '/logo1.png' : '/logo2.png'}
+              alt="Analyzor"
+              style={{ height: 'clamp(64px, 8vw, 110px)', width: 'auto' }}
+            />
+          </header>
+
+          {/* Glow behind content - centered on viewport */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 'min(900px, 80vw)',
+            height: 'min(700px, 60vh)',
+            background: 'radial-gradient(ellipse at center, rgba(239, 68, 68, 0.50) 0%, rgba(239, 68, 68, 0.15) 50%, transparent 70%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }} />
+
+          {/* Center content */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'relative',
+            zIndex: 10,
+            padding: '0 20px',
+            marginTop: 'clamp(-20px, -3vh, -40px)',
+          }}>
+
+            <h1 className="hero-title" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+              Habla con tus datos.<br />
+              <span style={{ fontStyle: 'italic', fontWeight: 300, color: 'var(--text-muted)' }}>Construye inteligencia.</span>
+            </h1>
+
+            <p style={{
+              fontSize: 'clamp(14px, 2vw, 18px)',
+              color: 'var(--text-muted)',
+              lineHeight: 1.6,
+              maxWidth: '680px',
+              margin: '0 auto clamp(20px, 3vh, 40px)',
+              textAlign: 'center',
+              position: 'relative',
+              zIndex: 1,
+            }}>
+              Consultas SQL, perfilado automático y análisis estadístico avanzado impulsado por IA.
+            </p>
+
+            <div style={{ display: 'flex', gap: 'clamp(10px, 2vw, 15px)', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
+              <button className="btn-primary" onClick={scrollToUploadZone}>
+                Cargar un CSV Gratis
+              </button>
+              <button className="btn-secondary" onClick={() => {
+                const el = document.getElementById('features')
+                el?.scrollIntoView({ behavior: 'smooth' })
+              }}>
+                Ver Funcionalidades
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Tech Ticker - appears on first scroll */}
+        <section style={{
+          maxWidth: '1000px',
+          margin: '0 auto',
+          textAlign: 'center',
+          padding: '80px 20px 40px',
+        }}>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '2.5px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '10px' }}>
+            TECNOLOGÍAS DE ALTO RENDIMIENTO QUE INTEGRAN NUESTRO STACK
           </p>
 
-          {/* Hero CTAs */}
-          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-            <button className="btn-primary" onClick={scrollToUploadZone}>
-              Cargar un CSV Gratis
-            </button>
-            <button className="btn-secondary" onClick={() => {
-              const el = document.getElementById('features')
-              el?.scrollIntoView({ behavior: 'smooth' })
-            }}>
-              Ver Funcionalidades
-            </button>
+          <div className="ticker-wrap">
+            <div className="ticker">
+              {[...techStack, ...techStack].map((tech, i) => (
+                <div key={i} className="ticker-item">
+                  <span style={{ color: 'var(--text-main)' }}>{tech.name}</span>
+                  <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 400 }}>{tech.desc}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
-      </div>
 
-      {/* Interactive Mock Dashboard Panel */}
-      <section style={{
-        maxWidth: '1000px',
-        margin: '20px auto 0',
-        padding: '0 20px',
-        position: 'relative',
-        zIndex: 10,
-      }}>
-        <div style={{
-          background: 'var(--card-bg)',
-          border: '1px solid var(--card-border)',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: isDarkMode ? '0 30px 60px -15px rgba(0,0,0,0.8)' : '0 30px 60px -15px rgba(0,0,0,0.1)',
-        }}>
-          {/* Header row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--card-border)', paddingBottom: '16px' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '12px', fontFamily: 'monospace' }}>analyzor.app / sandbox / analytics_visualization</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '6px', height: '6px', background: 'var(--accent)', borderRadius: '50%' }} />
-              <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>DEMOSTRACIÓN</span>
-            </div>
-          </div>
-
-          {/* Charts Grid */}
-          <div className="grid-2">
-
-            {/* Distribution Bar Chart */}
-            <div style={{ background: 'var(--chart-bg)', borderRadius: '12px', padding: '20px', height: '260px', position: 'relative', border: '1px solid var(--card-border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Histograma: Precios</h3>
-                <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>N = 1,075</span>
-              </div>
-              <div style={{ width: '100%', height: '180px', minWidth: 0, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={distributionData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
-                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ background: chartBg, borderColor: tooltipBorder, borderRadius: '6px', color: 'var(--text-main)' }}
-                      itemStyle={{ color: 'var(--text-main)' }}
-                      labelStyle={{ color: 'var(--text-main)', fontWeight: 600 }}
-                    />
-                    <Bar dataKey="count" name="Frecuencia" fill={accentHex} radius={[4, 4, 0, 0]} opacity={0.8} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* SQL Query Pie Chart */}
-            <div style={{ background: 'var(--chart-bg)', borderRadius: '12px', padding: '20px', height: '260px', border: '1px solid var(--card-border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Consulta SQL: Ventas por Categoría</h3>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>LIMIT 4</span>
-              </div>
-              <div style={{ width: '100%', height: '180px', minWidth: 0, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height={180}>
-                  <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                    <Tooltip
-                      contentStyle={{ background: chartBg, borderColor: tooltipBorder, borderRadius: '6px', color: 'var(--text-main)' }}
-                      itemStyle={{ color: 'var(--text-main)' }}
-                    />
-                    <Pie
-                      data={sqlQueryResult}
-                      dataKey="ventas"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={2}
-                    >
-                      {sqlQueryResult.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Infinite Technology Ticker Carousel */}
-      <section style={{
-        maxWidth: '1000px',
-        margin: '80px auto 80px',
-        textAlign: 'center',
-        padding: '0 20px',
-      }}>
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '2.5px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '10px' }}>
-          TECNOLOGÍAS DE ALTO RENDIMIENTO QUE INTEGRAN NUESTRO STACK
-        </p>
-
-        <div className="ticker-wrap">
-          <div className="ticker">
-            {[...techStack, ...techStack].map((tech, i) => (
-              <div key={i} className="ticker-item">
-                <span style={{ color: 'var(--text-main)' }}>{tech.name}</span>
-                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 400 }}>{tech.desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
+        {/* Features Section */}
       <section id="features" style={{
         maxWidth: '1000px',
         margin: '0 auto',
@@ -660,46 +592,271 @@ export default function Landing() {
         </div>
 
         <div className="grid-3">
-          {[
-            {
-              title: 'Perfilado Estadístico',
-              desc: 'Calcula automáticamente calidad de datos, estadísticas descriptivas, correlaciones y anomalías al instante.',
-              icon: (
+          {/* CARD 1: Perfilado Estadístico + Donut de estadísticas */}
+          <div className="feature-card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '25px 25px 0 25px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
-              )
-            },
-            {
-              title: 'Editor SQL Integrado',
-              desc: 'Escribe comandos SQL directos sobre tus datos indexados con DuckDB a alta velocidad.',
-              icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                  <line x1="4" y1="22" x2="4" y2="15" />
-                </svg>
-              )
-            },
-            {
-              title: 'Reportes y Exportación',
-              desc: 'Genera reportes PDF ejecutivos de tus análisis o descarga resultados en CSV al instante.',
-              icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              )
-            }
-          ].map((card, i) => (
-            <div key={i} className="feature-card" style={{ padding: '25px' }}>
-              <div style={{ marginBottom: '15px' }}>{card.icon}</div>
-              <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>{card.title}</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5 }}>{card.desc}</p>
+              </div>
+              <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Perfilado Estadístico</h4>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5, marginBottom: '16px' }}>
+                Calcula automáticamente calidad de datos, estadísticas descriptivas, correlaciones y anomalías al instante.
+              </p>
             </div>
-          ))}
+            <div style={{
+              marginTop: 'auto',
+              padding: '12px 10px 10px',
+              borderTop: '1px solid var(--card-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+            }}>
+              <div style={{ width: '110px', height: '110px', flexShrink: 0 }}>
+                <ResponsiveContainer width="100%" height={110}>
+                  <PieChart>
+                    <Pie
+                      data={statsDistribution}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={32}
+                      outerRadius={50}
+                      paddingAngle={3}
+                    >
+                      {statsDistribution.map((_, index) => (
+                        <Cell key={index} fill={barColors[index % barColors.length]} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {statsDistribution.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)' }}>
+                    <span style={{
+                      width: '8px', height: '8px', borderRadius: '2px',
+                      background: barColors[i % barColors.length], flexShrink: 0,
+                    }} />
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.name}</span>
+                    <span>{item.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 2: Editor SQL Integrado */}
+          <div className="feature-card" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ marginBottom: '12px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                <line x1="4" y1="22" x2="4" y2="15" />
+              </svg>
+            </div>
+            <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Editor SQL Integrado</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5, marginBottom: '16px', flex: 1 }}>
+              Escribe comandos SQL directos sobre tus datos indexados con DuckDB a alta velocidad.
+            </p>
+            <div style={{
+              background: 'var(--code-bg)',
+              borderRadius: '8px',
+              padding: '12px',
+              fontFamily: 'monospace',
+              fontSize: '11px',
+              border: '1px solid var(--card-border)',
+            }}>
+              <span style={{ color: '#ec4899' }}>SELECT</span> categoria, <span style={{ color: '#3b82f6' }}>SUM</span>(ingresos)<br />
+              <span style={{ color: '#ec4899' }}>FROM</span> dataset <span style={{ color: '#ec4899' }}>GROUP BY</span> categoria<br />
+              <span style={{ color: '#ec4899' }}>ORDER BY</span> 2 <span style={{ color: '#ec4899' }}>DESC</span>;
+            </div>
+          </div>
+
+          {/* CARD 3: Reportes y Exportación */}
+          <div className="feature-card" style={{ padding: '25px' }}>
+            <div style={{ marginBottom: '15px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </div>
+            <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Reportes y Exportación</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5 }}>Genera reportes PDF ejecutivos de tus análisis o descarga resultados en CSV al instante.</p>
+          </div>
         </div>
       </section>
+
+      {/* MIS DATASETS */}
+      {!datasetsLoading && (
+        <section style={{
+          maxWidth: '1000px',
+          margin: '80px auto 0',
+          padding: '0 20px',
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px',
+          }}>
+            <h2 style={{
+              margin: 0,
+              fontSize: '20px',
+              fontWeight: 700,
+              color: 'var(--text-main)',
+            }}>
+              Mis Datasets {datasets.length > 0 ? `(${datasets.length})` : ''}
+            </h2>
+            <button
+              onClick={triggerFileInput}
+              style={{
+                padding: '8px 16px',
+                background: 'var(--accent)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Subir
+            </button>
+          </div>
+
+          {datasets.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '50px 20px',
+              background: 'var(--card-bg)',
+              borderRadius: '12px',
+              border: '2px dashed var(--card-border)',
+            }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>
+                No tienes datasets aún
+              </p>
+              <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                Sube tu primer CSV desde la sección de carga o usando el botón de arriba
+              </p>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '16px',
+            }}>
+              {datasets.map(ds => (
+                <div
+                  key={ds.id}
+                  onClick={() => navigate(`/dashboard/${ds.id}`)}
+                  style={{
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--card-border)',
+                    borderRadius: '12px',
+                    padding: '18px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.1)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--card-border)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '3px',
+                    background: 'var(--accent)',
+                  }} />
+                  <h4 style={{
+                    margin: '6px 0 10px 0',
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: 'var(--text-main)',
+                  }}>
+                    {ds.name}
+                  </h4>
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    fontSize: '12px',
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}>
+                    <span>{ds.rows_count?.toLocaleString() || 0} filas</span>
+                    <span>•</span>
+                    <span>{ds.columns?.length || 0} columnas</span>
+                  </div>
+                  <p style={{
+                    margin: '10px 0 0 0',
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                  }}>
+                    {new Date(ds.created_at).toLocaleDateString('es-ES', {
+                      day: 'numeric', month: 'short', year: 'numeric',
+                    })}
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!confirm('¿Eliminar este dataset?')) return
+                      datasetsAPI.delete(ds.id).then(() => {
+                        setDatasets(prev => prev.filter(d => d.id !== ds.id))
+                      }).catch(console.error)
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: 'var(--text-muted)',
+                      padding: '4px 6px',
+                      borderRadius: '4px',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = 'var(--accent-glow)'
+                      e.currentTarget.style.color = 'var(--accent)'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.color = 'var(--text-muted)'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }
