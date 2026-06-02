@@ -49,7 +49,16 @@ export default function Landing() {
   const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
+    // Restore persisted theme
+    const savedTheme = localStorage.getItem('theme')
+    if (savedTheme === 'dark') {
+      setIsDarkMode(true)
+    }
+  }, [])
+
+  useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light')
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
   }, [isDarkMode])
 
   const handleDrag = (e) => {

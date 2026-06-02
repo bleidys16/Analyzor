@@ -64,18 +64,24 @@ def send_message(request):
 
     # Verificar si el SQL del AI es válido o si el AI falló
     is_valid_sql = (
-        sql and 
-        sql.strip().upper().startswith('SELECT') and 
-        not sql.startswith('Error')
+        sql and
+        sql.strip().upper().startswith('SELECT') and
+        not sql.startswith('Error') and
+        'table_name' not in sql.lower()
     )
 
     if not is_valid_sql:
-        # Fallback: generar SQL local sin IA
-        fallback_sql = FallbackSQLGenerator.generate(str(content).strip(), columns_list)
-        if fallback_sql:
-            sql = fallback_sql
-            is_valid_sql = True
-            used_fallback = True
+        # Si la pregunta no parece analítica (ej: "hola"), responde sin ejecutar SQL
+        content_norm = str(content).strip().lower()
+        if content_norm in {'hola', 'hi', 'hello', 'buenas', 'buenos dias', 'buenas tardes'}:
+            answer = '¡Hola! Puedo ayudarte a analizar tu dataset. Por ejemplo: “¿cuáles son las 5 filas de X?”, “promedio de Y”, “correlación entre A y B”.'
+        else:
+            # Fallback: generar SQL local sin IA
+            fallback_sql = FallbackSQLGenerator.generate(str(content).strip(), columns_list)
+            if fallback_sql:
+                sql = fallback_sql
+                is_valid_sql = True
+                used_fallback = True
 
     if is_valid_sql:
         try:

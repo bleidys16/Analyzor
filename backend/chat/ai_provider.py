@@ -17,16 +17,27 @@ class AIProvider:
     
     def generate_sql(self, question: str, schema: str) -> str:
         """Convierte pregunta en lenguaje natural a SQL"""
-        prompt = f"""You are a SQL expert. Given a database schema and a question in natural language, 
-generate a valid SQL query. Return ONLY the SQL query, no explanation.
+        prompt = f"""You are a SQL expert. Given a database schema and a question in natural language, generate a valid SQL query.
+Return ONLY the SQL query (no markdown, no explanation).
+
+Rules:
+- Always query the table named: data
+- Only generate SELECT queries
+- Quote column names using double quotes if needed
+- Never return placeholders like 'table_name'
 
 Schema:
 {schema}
 
+Examples:
+- "¿Cuál es la categoría más vendida?" -> SELECT product_category, SUM(quantity) as total FROM data GROUP BY product_category ORDER BY total DESC LIMIT 1
+- "¿Cuál es el valor medio de venta?" -> SELECT AVG(total_sale) FROM data
+- "¿Cuántas órdenes hay?" -> SELECT COUNT(*) FROM data
+
 Question: {question}
 
 SQL:"""
-        
+
         if self.env == 'production' and self.client:
             return self._generate_with_groq(prompt)
         else:

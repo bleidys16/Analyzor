@@ -23,18 +23,26 @@ def validate_csv(file):
         return False, str(e)
 
 def process_csv(file):
-    """Procesa CSV y extrae información"""
+    """Procesa CSV y extrae información (sin cargar el CSV completo)."""
+    # Límites para que el upload responda rápido en Vercel
+    PREVIEW_NROWS = 100
+    DTYPE_SAMPLE_NROWS = 1000
+
     try:
-        df = pd.read_csv(file)
-        
-        columns = df.columns.tolist()
-        rows_count = len(df)
-        file_size = file.size
-        
-        # Detectar tipos de datos
+        # Asegura que el stream está al inicio
+        file.seek(0)
+
+        # 1) Preview (solo primeras filas)
+        preview_df = pd.read_csv(file, nrows=PREVIEW_NROWS)
+        columns = preview_df.columns.tolist()
+
+        # 2) Muestra para inferir dtypes
+        file.seek(0)
+        sample_df = pd.read_csv(file, nrows=DTYPE_SAMPLE_NROWS)
+
         dtypes = {}
         for col in columns:
-            dtype = str(df[col].dtype)
+            dtype = str(sample_df[col].dtype)
             if 'int' in dtype:
                 dtypes[col] = 'integer'
             elif 'float' in dtype:
@@ -43,17 +51,29 @@ def process_csv(file):
                 dtypes[col] = 'datetime'
             else:
                 dtypes[col] = 'string'
-        
-        # Preview (primeras 100 filas)
-        preview_data = _sanitize(df.head(100).to_dict(orient='records'))
-        
+
+        # 3) rows_count: para evitar cargar todo, usamos aproximación razonable
+        #    (si más adelante necesitas el conteo exacto, hazlo en background.)
+        #    Aquí estimamos contando líneas del stream.
+        file.seek(0)
+        # Intento de conteo eficiente por bytes; funciona bien para CSV normales.
+        # Resta el header (1 línea) si existe.
+        lines = 0
+        for _ in file:
+            lines += 1
+        rows_count = max(0, lines - 1)
+
+        file_size = file.size
+
+        preview_data = _sanitize(preview_df.to_dict(orient='records'))
+
         return {
             'columns': columns,
             'dtypes': dtypes,
             'rows_count': rows_count,
             'file_size': file_size,
             'preview_data': preview_data,
-            'error': None
+            'error': None,
         }
     except Exception as e:
         return {'error': str(e)}

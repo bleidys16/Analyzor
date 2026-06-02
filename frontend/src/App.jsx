@@ -16,6 +16,11 @@ function AppContent() {
     }
     setSessionId(sessionId)
     client.defaults.headers.common['X-Session-ID'] = sessionId
+
+    // Persist theme across routes (Landing -> Dashboard)
+    const savedTheme = localStorage.getItem('theme')
+    const initialDark = savedTheme === 'dark'
+    document.documentElement.setAttribute('data-theme', initialDark ? 'dark' : 'light')
   }, [setSessionId])
 
   return (
