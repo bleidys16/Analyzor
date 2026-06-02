@@ -83,17 +83,12 @@ def send_message(request):
     )
 
     if not is_valid_sql:
-        # Si la pregunta no parece analítica (ej: "hola"), responde sin ejecutar SQL
-        content_norm = str(content).strip().lower()
-        if content_norm in {'hola', 'hi', 'hello', 'buenas', 'buenos dias', 'buenas tardes'}:
-            answer = '¡Hola! Puedo ayudarte a analizar tu dataset. Puedes preguntarme sobre promedios, sumas, valores máximos y mínimos, correlaciones, distribuciones, o simplemente pedirme un resumen de los datos.'
-        else:
-            # Fallback: generar SQL local sin IA
-            fallback_sql = FallbackSQLGenerator.generate(str(content).strip(), columns_list)
-            if fallback_sql:
-                sql = fallback_sql
-                is_valid_sql = True
-                used_fallback = True
+        # Fallback: generar SQL local sin IA
+        fallback_sql = FallbackSQLGenerator.generate(str(content).strip(), columns_list)
+        if fallback_sql:
+            sql = fallback_sql
+            is_valid_sql = True
+            used_fallback = True
 
     if is_valid_sql:
         try:
@@ -125,20 +120,15 @@ def send_message(request):
         except Exception as e:
             answer = f"Error ejecutando SQL: {str(e)}"
     else:
-        # Si no se pudo generar SQL, responder con datos disponibles
+        # No se pudo generar SQL - responder con chat general
         try:
             df = pd.read_csv(get_csv_tempfile(dataset))
-            preview_rows = df.head(5).to_string()
             context = (
                 f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
                 f"Columnas: {', '.join(columns_list)}\n\n"
-                f"Primeras 5 filas:\n{preview_rows}"
+                f"Primeras 5 filas:\n{df.head(5).to_string()}"
             )
-            
-            if used_fallback:
-                answer = FallbackSQLGenerator.generate_answer(str(content).strip(), {'data': [], 'columns': [], 'row_count': 0}, sql or '')
-            else:
-                answer = provider.answer_question(str(content).strip(), context)
+            answer = provider.chat(str(content).strip(), context)
         except Exception as e:
             answer = f"Error al analizar: {str(e)}"
 
@@ -286,17 +276,16 @@ def message(self, request):
                     response_text = f"Error ejecutando SQL: {result['error']}"
             except Exception as e:
                 response_text = f"Error: {str(e)}"
-        else:
-            # Si no es SQL válido, aún así responder
+        elif not response_text:
+            # No se pudo generar SQL - responder con chat general
             try:
                 df = pd.read_csv(get_csv_tempfile(dataset))
-                preview_rows = df.head(5).to_string()
                 context = (
                     f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
                     f"Columnas: {', '.join(columns_list)}\n\n"
-                    f"Primeras 5 filas:\n{preview_rows}"
+                    f"Primeras 5 filas:\n{df.head(5).to_string()}"
                 )
-                response_text = ai_provider.answer_question(user_message, context)
+                response_text = ai_provider.chat(user_message, context)
             except Exception as e:
                 response_text = f"Error al analizar datos: {str(e)}"
         

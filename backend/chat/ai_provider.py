@@ -2,19 +2,98 @@ import os
 from groq import Groq
 import requests
 
+OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+
+
 class AIProvider:
-    """Proveedor de IA - puede ser Groq u Ollama"""
-    
+    """Proveedor de IA - Groq, OpenRouter u Ollama"""
+
     def __init__(self):
         self.env = os.getenv('ENV', 'dev')
-        if self.env == 'production':
-            try:
-                self.client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-            except Exception as e:
-                print(f"Error inicializando Groq: {e}")
-                self.client = None
+        self.openrouter_key = os.getenv('OPENROUTER_API_KEY')
+        # Groq solo si hay API key
+        groq_key = os.getenv('GROQ_API_KEY')
+        self.groq_client = Groq(api_key=groq_key) if groq_key and self.env == 'production' else None
         self.ollama_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
-    
+
+    def _system_prompt(self):
+        return """Eres Analyzor, un asistente de análisis de datos con personalidad amable y profesional.
+
+Personalidad:
+- Eres Analyzor, experto en datos, SQL y visualizaciones.
+- Respondes en español de forma natural y conversacional.
+- Puedes conversar de temas generales, pero siempre ofreces ayuda con los datos.
+
+Cuando el usuario habla de sus datos:
+- Usas los números reales del contexto para responder.
+- Das resultados concretos: promedios, totales, máximos, etc.
+- Nunca explicas fórmulas ni dices que no tienes acceso a los datos.
+
+Cuando el usuario saluda:
+- Te presentas como Analyzor y ofreces ayuda con su dataset.
+
+Cuando el usuario pregunta algo no relacionado:
+- Puedes conversar amigablemente, pero siempre terminas ofreciendo ayuda con el dataset."""
+
+    def _openrouter_chat(self, messages: list, max_tokens: int = 1000) -> str:
+        if not self.openrouter_key:
+            return None
+        try:
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.openrouter_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://analyzor.app",
+                },
+                json={
+                    "model": OPENROUTER_MODEL,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": 0.5,
+                },
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                return resp.json()["choices"][0]["message"]["content"].strip()
+            return None
+        except Exception:
+            return None
+
+    def chat(self, message: str, context: str = "") -> str:
+        """Conversación general con personalidad Analizor"""
+        system = self._system_prompt()
+
+        if context:
+            system += f"\n\nDatos disponibles:\n{context}"
+
+        msgs = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": message},
+        ]
+
+        # Intentar OpenRouter primero
+        if self.openrouter_key:
+            result = self._openrouter_chat(msgs)
+            if result:
+                return result
+
+        # Fallback a Groq
+        if self.groq_client:
+            try:
+                completion = self.groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=msgs,
+                    max_tokens=1000,
+                    temperature=0.5,
+                )
+                return completion.choices[0].message.content.strip()
+            except Exception:
+                pass
+
+        # Último recurso: Ollama
+        return self._generate_with_ollama(f"{system}\n\n{message}")
+
     def generate_sql(self, question: str, schema: str) -> str:
         """Convierte pregunta en lenguaje natural a SQL"""
         system = """You are a SQL expert. Your ONLY task is to convert natural language questions into valid SQL queries.
@@ -46,55 +125,110 @@ Question: {question}
 
 SQL:"""
 
-        if self.env == 'production' and self.client:
-            return self._generate_with_groq(system, user_msg)
-        else:
-            return self._generate_with_ollama(f"{system}\n\n{user_msg}")
-    
+        msgs = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_msg},
+        ]
+
+        # OpenRouter
+        if self.openrouter_key:
+            result = self._openrouter_chat(msgs)
+            if result:
+                return result
+
+        # Groq
+        if self.groq_client:
+            try:
+                completion = self.groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=msgs,
+                    max_tokens=500,
+                    temperature=0.1,
+                )
+                return completion.choices[0].message.content.strip()
+            except Exception:
+                pass
+
+        return self._generate_with_ollama(f"{system}\n\n{user_msg}")
+
     def answer_question(self, question: str, context: str) -> str:
-        """Responde una pregunta con contexto de datos"""
-        system = """You are a data analyst assistant. Answer the user's question based ONLY on the actual data provided in the context.
+        """Responde una pregunta con contexto de datos (números reales)"""
+        system = self._system_prompt()
+        system += f"""
 
-RULES:
-- Be concise and professional. Provide specific numbers and insights.
-- If the context contains query results, use those numbers directly.
-- NEVER give theoretical explanations like "the average is calculated by summing values and dividing by count".
-- NEVER say "I don't have access to the values". You DO have the data context.
-- If the context only lists column names (no actual row data), tell the user what columns are available and suggest specific questions they can ask."""
-
-        user_msg = f"""Data Context:
+Contexto actual del dataset:
 {context}
 
-Question: {question}
+IMPORTANTE: Tus respuestas sobre datos deben incluir números concretos del contexto anterior."""
 
-Answer:"""
-        
-        if self.env == 'production' and self.client:
-            return self._generate_with_groq(system, user_msg)
-        else:
-            return self._generate_with_ollama(f"{system}\n\n{user_msg}")
-    
+        msgs = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": question},
+        ]
+
+        # OpenRouter
+        if self.openrouter_key:
+            result = self._openrouter_chat(msgs)
+            if result and not self._is_theory_response(result):
+                return result
+
+        # Groq
+        if self.groq_client:
+            try:
+                completion = self.groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=msgs,
+                    max_tokens=1000,
+                    temperature=0.5,
+                )
+                answer = completion.choices[0].message.content.strip()
+                if not self._is_theory_response(answer):
+                    return answer
+            except Exception:
+                pass
+
+        return self._extract_numbers_from_context(question, context)
+
+    def _extract_numbers_from_context(self, question: str, context: str) -> str:
+        import re as _re
+        question_lower = question.lower()
+        if any(w in question_lower for w in ['promedio', 'media', 'average', 'avg', 'mean']):
+            lines = [l.strip() for l in context.split('\n') if l.strip()]
+            avg_lines = [l for l in lines if any(w in l.lower() for w in ['avg', 'promedio', 'average', 'mean'])]
+            if avg_lines:
+                return '\n'.join(avg_lines[:3])
+            return f"Los datos están disponibles. Columnas: {lines[0] if lines else 'ver dataset'}."
+        return "Revisa los datos disponibles en la tabla para obtener resultados específicos."
+
+    def _is_theory_response(self, text: str) -> bool:
+        theory_patterns = [
+            'no puedo calcular', 'necesitaría', 'necesito los datos',
+            'sin datos específicos', 'sin acceso', 'se puede hacer con la fórmula',
+            'se calcula con', 'la fórmula', 'suponiendo que',
+            'the average is calculated', 'i need more details',
+            'i don\'t have access', 'assuming you mean',
+            'you can calculate it by', 'to calculate',
+        ]
+        return any(p in text.lower() for p in theory_patterns)
+
     def _generate_with_groq(self, system: str, user: str) -> str:
-        """Usa Groq API con system + user messages"""
         try:
-            if not self.client:
+            if not self.groq_client:
                 return "Error: Groq no inicializado"
-            
-            completion = self.client.chat.completions.create(
+            completion = self.groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": system},
-                    {"role": "user", "content": user}
+                    {"role": "user", "content": user},
                 ],
                 max_tokens=1000,
-                temperature=0.3
+                temperature=0.3,
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
             return f"Error con Groq: {str(e)}"
-    
+
     def _generate_with_ollama(self, prompt: str) -> str:
-        """Usa Ollama local"""
         try:
             response = requests.post(
                 f'{self.ollama_url}/api/generate',
@@ -102,13 +236,12 @@ Answer:"""
                     'model': 'mistral',
                     'prompt': prompt,
                     'stream': False,
-                    'temperature': 0.3
+                    'temperature': 0.3,
                 },
-                timeout=30
+                timeout=30,
             )
             if response.status_code == 200:
                 return response.json()['response'].strip()
-            else:
-                return f"Error: Ollama respondió con {response.status_code}"
+            return f"Error: Ollama respondió con {response.status_code}"
         except Exception as e:
             return f"Error al conectar con Ollama: {str(e)}"
