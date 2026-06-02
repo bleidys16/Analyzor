@@ -55,10 +55,13 @@ class DatasetUploadView(APIView):
         # Crear dataset
         try:
             file.seek(0)
+            csv_text = file.read().decode('utf-8') if hasattr(file, 'read') else ''
+            file.seek(0)
             dataset = Dataset.objects.create(
                 session_id=session_id,
                 name=file.name.replace('.csv', ''),
                 file=file,
+                csv_content=csv_text,
                 columns=processed['columns'],
                 rows_count=processed['rows_count'],
                 file_size=processed['file_size'],

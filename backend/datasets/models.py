@@ -6,10 +6,11 @@ class Dataset(models.Model):
     session_id = models.CharField(max_length=100, db_index=True)
     name = models.CharField(max_length=255)
     file = models.FileField(upload_to='datasets/')
+    csv_content = models.TextField(blank=True, default='')
     columns = models.JSONField(default=list)
     rows_count = models.IntegerField()
     file_size = models.IntegerField()
-    dtypes = models.JSONField(default=dict)  # tipos de datos por columna
+    dtypes = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
 

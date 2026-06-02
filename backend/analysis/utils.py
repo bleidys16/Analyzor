@@ -2,8 +2,30 @@ import tempfile
 
 
 def get_csv_tempfile(dataset):
-    """Lee el CSV desde el storage de Django y lo escribe a un archivo temporal"""
-    content = dataset.file.read()
+    """Lee el CSV desde el storage de Django o desde csv_content en DB, y escribe a temporal"""
+    content = None
+    try:
+        content = dataset.file.read()
+        # Backfill: si el archivo existe pero no hay csv_content, guardarlo
+        if content and not dataset.csv_content:
+            try:
+                from django.db.models import Model as _M
+                dataset.csv_content = content.decode('utf-8')
+                dataset.save(update_fields=['csv_content'])
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    if not content and dataset.csv_content:
+        content = dataset.csv_content.encode('utf-8')
+
+    if not content:
+        raise FileNotFoundError(
+            f"El archivo {dataset.name} no está disponible en el servidor. "
+            "Debes subir el CSV nuevamente."
+        )
+
     f = tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False)
     f.write(content)
     f.close()
