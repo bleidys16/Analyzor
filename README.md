@@ -1,7 +1,7 @@
 # ANALYZOR
 
 <p align="center">
-  <img src="frontend/public/logo2.png" alt="Analyzor" height="80"/>
+  <img src="frontend/public/faviconA.png" alt="Analyzor" height="80"/>
 </p>
 
 <p align="center">
