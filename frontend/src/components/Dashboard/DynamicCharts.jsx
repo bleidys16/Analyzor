@@ -37,18 +37,18 @@ function DatasetSummary({ dataset, analysis }) {
 
       {/* Resumen de columnas */}
       <div style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        background: 'var(--chart-bg)',
+        border: '1px solid var(--card-border)',
         borderRadius: '12px',
         padding: '20px',
       }}>
-        <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+        <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
           Resumen de Columnas
         </h3>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+              <tr style={{ borderBottom: '2px solid var(--card-border)' }}>
                 <th style={thStyle}>Columna</th>
                 <th style={thStyle}>Tipo</th>
                 <th style={thStyle}>Nulos</th>
@@ -65,7 +65,7 @@ function DatasetSummary({ dataset, analysis }) {
                 const stats = analysisData?.statistics?.[col] || {}
                 const isNum = numericCols.includes(col)
                 return (
-                  <tr key={col} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={col} style={{ borderBottom: '1px solid var(--card-border)' }}>
                     <td style={tdStyle}><strong>{col}</strong></td>
                     <td style={tdStyle}>
                       <span style={{
@@ -100,18 +100,18 @@ function DatasetSummary({ dataset, analysis }) {
       {/* Estadísticas descriptivas (numéricas) */}
       {numericCols.length > 0 && (
         <div style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          background: 'var(--chart-bg)',
+          border: '1px solid var(--card-border)',
           borderRadius: '12px',
           padding: '20px',
         }}>
-          <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
             Estadísticas Descriptivas
           </h3>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                <tr style={{ borderBottom: '2px solid var(--card-border)' }}>
                   <th style={thStyle}>Columna</th>
                   <th style={thStyle}>Media</th>
                   <th style={thStyle}>Mediana</th>
@@ -126,7 +126,7 @@ function DatasetSummary({ dataset, analysis }) {
                 {numericCols.map(col => {
                   const s = analysisData?.statistics?.[col] || {}
                   return (
-                    <tr key={col} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={col} style={{ borderBottom: '1px solid var(--card-border)' }}>
                       <td style={tdStyle}><strong>{col}</strong></td>
                       <td style={tdNumStyle}>{s.mean?.toFixed(2) ?? '—'}</td>
                       <td style={tdNumStyle}>{s.median?.toFixed(2) ?? '—'}</td>
@@ -147,12 +147,12 @@ function DatasetSummary({ dataset, analysis }) {
       {/* Distribución de categóricas (top valores) */}
       {categoricCols.length > 0 && (
         <div style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          background: 'var(--chart-bg)',
+          border: '1px solid var(--card-border)',
           borderRadius: '12px',
           padding: '20px',
         }}>
-          <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
             Distribución de Categóricas
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -161,26 +161,26 @@ function DatasetSummary({ dataset, analysis }) {
               const stats = analysisData?.statistics?.[col] || {}
               return (
                 <div key={col}>
-                  <p style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+                  <p style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
                     {col}
-                    <span style={{ fontWeight: 400, color: '#64748b', marginLeft: '8px' }}>
+                    <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>
                       {dq.unique_count ?? 0} valores únicos · Más común: <strong>{stats.most_common || '—'}</strong>
                     </span>
                   </p>
                   <div style={{
                     height: '4px',
-                    background: '#e2e8f0',
+                    background: 'var(--code-bg)',
                     borderRadius: '2px',
                     overflow: 'hidden',
                   }}>
                     <div style={{
                       height: '100%',
                       width: `${dq.cardinality || 0}%`,
-                      background: '#3b82f6',
+                      background: 'var(--accent)',
                       borderRadius: '2px',
                     }} />
                   </div>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#94a3b8' }}>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'var(--text-muted)' }}>
                     Cardinalidad: {(dq.cardinality || 0).toFixed(1)}%
                   </p>
                 </div>
@@ -193,17 +193,17 @@ function DatasetSummary({ dataset, analysis }) {
       {/* Anomalías */}
       {analysisData?.anomalies?.length > 0 && (
         <div style={{
-          background: '#fef2f2',
-          border: '1px solid #fecaca',
+          background: 'var(--code-bg)',
+          border: '1px solid var(--accent)',
           borderRadius: '12px',
           padding: '20px',
         }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: 700, color: '#ef4444' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: 700, color: 'var(--accent)' }}>
             ⚠️ Anomalías Detectadas
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {analysisData.anomalies.map((a, i) => (
-              <p key={i} style={{ margin: 0, fontSize: '13px', color: '#991b1b', fontWeight: 500 }}>
+              <p key={i} style={{ margin: 0, fontSize: '13px', color: 'var(--accent)', fontWeight: 500 }}>
                 {a.message}
               </p>
             ))}
@@ -211,43 +211,7 @@ function DatasetSummary({ dataset, analysis }) {
         </div>
       )}
 
-      {/* Preview */}
-      {preview.length > 0 && (
-        <div style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          padding: '20px',
-        }}>
-          <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-            Vista Previa ({preview.length} filas)
-          </h3>
-          <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  {columns.map(col => (
-                    <th key={col} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: '#64748b' }}>
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {preview.map((row, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    {columns.map(col => (
-                      <td key={col} style={{ padding: '6px 10px', color: '#0f172a', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {String(row[col] ?? '').substring(0, 30)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+
     </>
   )
 }
@@ -255,14 +219,14 @@ function DatasetSummary({ dataset, analysis }) {
 function KPI({ value, label }) {
   return (
     <div style={{
-      background: '#ffffff',
-      border: '1px solid #e2e8f0',
+      background: 'var(--chart-bg)',
+      border: '1px solid var(--card-border)',
       borderRadius: '10px',
       padding: '16px',
       textAlign: 'center',
     }}>
-      <p style={{ margin: '0 0 2px 0', fontSize: '22px', fontWeight: 700, color: '#0f172a' }}>{value}</p>
-      <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{label}</p>
+      <p style={{ margin: '0 0 2px 0', fontSize: '22px', fontWeight: 700, color: 'var(--text-main)' }}>{value}</p>
+      <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{label}</p>
     </div>
   )
 }
@@ -271,20 +235,20 @@ const thStyle = {
   padding: '10px 12px',
   textAlign: 'left',
   fontWeight: 700,
-  color: '#64748b',
+  color: 'var(--text-muted)',
   fontSize: '11px',
   whiteSpace: 'nowrap',
 }
 
 const tdStyle = {
   padding: '8px 12px',
-  color: '#0f172a',
+  color: 'var(--text-main)',
   whiteSpace: 'nowrap',
 }
 
 const tdNumStyle = {
   padding: '8px 12px',
-  color: '#0f172a',
+  color: 'var(--text-main)',
   textAlign: 'right',
   fontVariantNumeric: 'tabular-nums',
 }

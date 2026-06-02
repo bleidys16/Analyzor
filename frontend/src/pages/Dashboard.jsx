@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import { analysisAPI } from '../api/analysis'
 import { chatAPI } from '../api/chat'
@@ -8,11 +8,13 @@ import { useStore } from '../store/store'
 import ChatMessages from '../components/Chat/ChatMessages'
 import ChatInput from '../components/Chat/ChatInput'
 import DynamicCharts from '../components/Dashboard/DynamicCharts'
+import TopographicBackground from '../components/TopographicBackground'
 
 export default function Dashboard() {
   const { datasetId } = useParams()
-  console.log('Dataset ID from URL:', datasetId)
+  const navigate = useNavigate()
   const { setCurrentDataset } = useStore()
+  
   const [dataset, setDataset] = useState(null)
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -20,6 +22,18 @@ export default function Dashboard() {
   const [error, setError] = useState(null)
   const [messages, setMessages] = useState([])
   const [sending, setSending] = useState(false)
+  const [activeTab, setActiveTab] = useState('analysis')
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme')
+    setIsDarkMode(savedTheme === 'dark')
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.getAttribute('data-theme') === 'dark')
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,7 +51,7 @@ export default function Dashboard() {
         
         await loadChatHistory()
       } catch (err) {
-        setError(err.response?.data?.error || err.response?.data?.detail || 'Error al cargar datos')
+        setError(err.response?.data?.detail || 'Error al cargar datos')
       } finally {
         setLoading(false)
       }
@@ -69,30 +83,6 @@ export default function Dashboard() {
     }
   }
 
-  const handleSendMessage = async (message) => {
-  if (!message.trim()) return
-
-  // Añadir mensaje del usuario inmediatamente
-  const userMsg = { role: 'user', content: message }
-  setMessages([...messages, userMsg])
-  
-  setSending(true)
-  try {
-    const response = await chatAPI.sendMessage(datasetId, message)
-    // Añadir respuesta del asistente
-    setMessages(prev => [...prev, response.data])
-  } catch (err) {
-    console.error('Error enviando mensaje:', err)
-    // Añadir mensaje de error
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: 'Error: No pude procesar tu pregunta. Intenta de nuevo.'
-    }])
-  } finally {
-    setSending(false)
-  }
-}
-
   const handleExportPDF = async () => {
     try {
       const response = await exportAPI.exportPDF(datasetId, analysis)
@@ -109,271 +99,372 @@ export default function Dashboard() {
     }
   }
 
+  const handleSendMessage = async (message) => {
+    if (!message.trim()) return
+
+    const userMsg = { role: 'user', content: message }
+    setMessages([...messages, userMsg])
+    
+    setSending(true)
+    try {
+      const response = await chatAPI.sendMessage(datasetId, message)
+      setMessages(prev => [...prev, response.data])
+    } catch (err) {
+      console.error('Error enviando mensaje:', err)
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Error: No pude procesar tu pregunta. Intenta de nuevo.'
+      }])
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg-color)',
-        color: 'var(--text-main)',
-        fontFamily: '"Space Grotesk", sans-serif',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid var(--card-border)',
-            borderTop: '3px solid var(--accent)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px',
-          }} />
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Cargando dataset...</p>
+      <>
+        <TopographicBackground isDark={isDarkMode} />
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-color)',
+          color: 'var(--text-main)',
+          fontFamily: '"Space Grotesk", sans-serif',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid var(--card-border)',
+              borderTop: '3px solid #ef4444',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 20px',
+            }} />
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Cargando dataset...</p>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
+      </>
     )
   }
 
   if (analyzing || !analysis) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f8fafc',
-        fontFamily: '"Space Grotesk", sans-serif',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid #e2e8f0',
-            borderTop: '3px solid #ef4444',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px',
-          }} />
-          <p style={{ color: '#64748b', fontSize: '14px' }}>Analizando tu dataset...</p>
+      <>
+        <TopographicBackground isDark={isDarkMode} />
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f8fafc',
+          fontFamily: '"Space Grotesk", sans-serif',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid #e2e8f0',
+              borderTop: '3px solid #ef4444',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 20px',
+            }} />
+            <p style={{ color: '#64748b', fontSize: '14px' }}>Analizando tu dataset...</p>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
+      </>
     )
   }
 
   if (error) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f8fafc',
-        fontFamily: '"Space Grotesk", sans-serif',
-      }}>
-        <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" style={{ margin: '0 auto 20px' }}>
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <p style={{ color: '#ef4444', fontSize: '16px', fontWeight: 600 }}>{error}</p>
+      <>
+        <TopographicBackground isDark={isDarkMode} />
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f8fafc',
+          fontFamily: '"Space Grotesk", sans-serif',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" style={{ margin: '0 auto 20px' }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p style={{ color: '#ef4444', fontSize: '16px', fontWeight: 600, marginBottom: '20px' }}>{error}</p>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                padding: '10px 20px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '14px',
+              }}
+            >
+              Volver a Inicio
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#f8fafc',
-      padding: '30px 20px',
-      fontFamily: '"Space Grotesk", sans-serif',
-    }}>
-      <style>{`
-        .stat-card {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          padding: 16px;
-          transition: all 0.2s ease;
-        }
-        .stat-card:hover {
-          border-color: #ef4444;
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
-        }
-        .anomaly-card {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 8px;
-          padding: 12px;
-          border-left: 3px solid #ef4444;
-        }
-        .btn-primary {
-          background: #3b82f6;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 14px;
-          transition: all 0.2s ease;
-        }
-        .btn-primary:hover {
-          background: #2563eb;
-          transform: translateY(-1px);
-        }
-        .btn-secondary {
-          background: transparent;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-          padding: 8px 14px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 12px;
-          transition: all 0.2s ease;
-        }
-        .btn-secondary:hover {
-          background: #f1f5f9;
-          border-color: #cbd5e1;
-        }
-      `}</style>
+    <>
+      <TopographicBackground isDark={isDarkMode} />
+      <div style={{
+        minHeight: '100vh',
+        padding: '20px',
+        fontFamily: '"Space Grotesk", sans-serif',
+        position: 'relative',
+        zIndex: 1,
+        background: 'var(--bg-color)',
+      }}>
+        <style>{`
+          .tab-btn {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            fontWeight: 600;
+            fontSize: 13px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+          }
+          .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+          }
+          .tab-btn:hover {
+            color: var(--text-main);
+          }
+        `}</style>
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '30px',
-        }}>
-          <div>
-            <h1 style={{ 
-              margin: '0 0 8px 0', 
-              fontSize: '32px', 
-              fontWeight: 700, 
-              color: '#0f172a',
-              letterSpacing: '-0.5px',
-            }}>
-              {dataset?.name || 'Dashboard'}
-            </h1>
-            <p style={{ 
-              margin: 0, 
-              color: '#64748b', 
-              fontSize: '14px',
-              display: 'flex',
-              gap: '20px',
-            }}>
-              <span>{dataset?.rows_count?.toLocaleString()} filas</span>
-              <span>•</span>
-              <span>{dataset?.columns?.length} columnas</span>
-              <span>•</span>
-              <span>{(dataset?.file_size / 1024).toFixed(2)} KB</span>
-            </p>
-          </div>
-          <button
-            onClick={handleExportPDF}
-            style={{
-              padding: '10px 20px',
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-            Exportar PDF
-          </button>
-        </div>
-
-        {/* Main Grid: Content + Chat */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 340px',
-          gap: '24px',
-          minHeight: 'calc(100vh - 200px)',
-        }}>
-          {/* Left: Analysis */}
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          
+          {/* HEADER */}
           <div style={{
-            overflowY: 'auto',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingBottom: '24px',
+            borderBottom: '1px solid var(--card-border)',
+            marginBottom: '24px',
           }}>
-            <DynamicCharts dataset={dataset} analysis={analysis} />
-          </div>
-
-          {/* Right: Chat */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            height: 'calc(100vh - 180px)',
-            position: 'sticky',
-            top: '20px',
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '16px',
-              paddingBottom: '12px',
-              borderBottom: '1px solid #e2e8f0',
-            }}>
-              <h3 style={{ 
-                margin: 0, 
-                fontSize: '14px', 
-                fontWeight: 700,
-                color: '#0f172a',
+            <div style={{ flex: 1 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                marginBottom: '8px',
               }}>
-                Asistente IA
-              </h3>
-              <button
-                onClick={() => {
-                  chatAPI.clearChat(datasetId)
-                  setMessages([])
-                }}
-                className="btn-secondary"
-              >
-                Limpiar
-              </button>
+                <button
+                  onClick={() => navigate('/')}
+                  style={{
+                    background: 'var(--code-bg)',
+                    border: 'none',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = 'var(--card-border)'; e.currentTarget.style.color = 'var(--accent)' }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'var(--code-bg)'; e.currentTarget.style.color = 'var(--text-main)' }}
+                  title="Volver"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                  </svg>
+                </button>
+                <h1 style={{ 
+                  margin: 0, 
+                  fontSize: '28px', 
+                  fontWeight: 700, 
+                  color: 'var(--text-main)',
+                  letterSpacing: '-0.5px',
+                }}>
+                  {dataset?.name}
+                </h1>
+              </div>
+              <p style={{ 
+                margin: '8px 0 0 0', 
+                color: 'var(--text-muted)', 
+                fontSize: '12px',
+                display: 'flex',
+                gap: '12px',
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  {dataset?.rows_count?.toLocaleString()} filas
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>•</span>
+                <span>{dataset?.columns?.length} columnas</span>
+                <span style={{ color: 'var(--text-muted)' }}>•</span>
+                <span>{(dataset?.file_size / 1024).toFixed(2)} KB</span>
+              </p>
             </div>
-
-            <ChatMessages messages={messages} />
-            <ChatInput 
-              onSend={handleSendMessage} 
-              datasetId={datasetId}
-            />
+            
+            <button
+              onClick={handleExportPDF}
+              style={{
+                padding: '10px 16px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease',
+                opacity: 0.9,
+              }}
+              onMouseOver={(e) => e.target.style.opacity = '1'}
+              onMouseOut={(e) => e.target.style.opacity = '0.9'}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              PDF
+            </button>
           </div>
+
+          {/* TABS */}
+          <div style={{
+            display: 'flex',
+            gap: '0',
+            marginBottom: '24px',
+            borderBottom: '1px solid var(--card-border)',
+          }}>
+            <button
+              className={`tab-btn ${activeTab === 'analysis' ? 'active' : ''}`}
+              onClick={() => setActiveTab('analysis')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+              </svg>
+              Análisis
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Asistente IA
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
+              onClick={() => setActiveTab('preview')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              </svg>
+              Vista Previa
+            </button>
+          </div>
+
+          {/* CONTENT */}
+          {activeTab === 'analysis' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <DynamicCharts dataset={dataset} analysis={analysis} />
+            </div>
+          )}
+
+          {activeTab === 'chat' && (
+            <div style={{
+              background: 'var(--card-bg)',
+              borderRadius: '12px',
+              border: '1px solid var(--card-border)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: '400px',
+            }}>
+              <ChatMessages messages={messages} sending={sending} />
+              <ChatInput 
+                onSend={handleSendMessage} 
+                datasetId={datasetId}
+              />
+            </div>
+          )}
+
+          {activeTab === 'preview' && dataset?.preview?.length > 0 && (
+            <div style={{
+              background: 'var(--card-bg)',
+              borderRadius: '12px',
+              border: '1px solid var(--card-border)',
+              padding: '20px',
+              overflowX: 'auto',
+            }}>
+              <h3 style={{
+                margin: '0 0 16px 0',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+              }}>
+                Vista Previa ({dataset.preview.length} filas)
+              </h3>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--card-border)', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--code-bg)', borderBottom: '1px solid var(--card-border)' }}>
+                      {(dataset?.columns || []).map(col => (
+                        <th key={col} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dataset.preview.map((row, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--card-border)' }}>
+                        {(dataset?.columns || []).map(col => (
+                          <td key={col} style={{ padding: '6px 10px', color: 'var(--text-main)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {String(row[col] ?? '').substring(0, 30)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </>
   )
 }

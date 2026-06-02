@@ -8,7 +8,7 @@
 
 :root {
   /* Light mode variables */
-  --bg-color: #ffffff;
+  --bg-color: #f0f0f2;
   --text-main: #0f172a;
   --text-muted: #64748b;
   --card-bg: #f8fafc;
@@ -36,14 +36,25 @@
   --chart-bg: #121826;
 }
 
-html,
-body,
-#root {
+html {
+  width: 100%;
+  min-height: 100vh;
+  color: var(--text-main);
+}
+
+body {
   width: 100%;
   min-height: 100vh;
   background-color: var(--bg-color);
   color: var(--text-main);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
 body {

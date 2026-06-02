@@ -2,20 +2,18 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import { useStore } from '../store/store'
-import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts'
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts'
+import TopographicBackground from '../components/TopographicBackground'
 
-// Mock data for ML Model training accuracy curve
-const mlTrainingData = [
-  { name: 'E1', precision: 0.52 },
-  { name: 'E2', precision: 0.65 },
-  { name: 'E3', precision: 0.73 },
-  { name: 'E4', precision: 0.79 },
-  { name: 'E5', precision: 0.84 },
-  { name: 'E6', precision: 0.88 },
-  { name: 'E7', precision: 0.91 },
-  { name: 'E8', precision: 0.93 },
-  { name: 'E9', precision: 0.95 },
-  { name: 'E10', precision: 0.96 },
+// Mock data for Distribution (Histogram)
+const distributionData = [
+  { name: '0-1k', count: 45 },
+  { name: '1k-2k', count: 120 },
+  { name: '2k-3k', count: 350 },
+  { name: '3k-4k', count: 280 },
+  { name: '4k-5k', count: 150 },
+  { name: '5k-6k', count: 90 },
+  { name: '6k-7k', count: 40 },
 ]
 
 // Mock data for DuckDB SQL Query result (Sales by category)
@@ -28,7 +26,6 @@ const sqlQueryResult = [
 
 const techStack = [
   { name: 'DUCKDB', desc: 'Base de datos SQL integrada' },
-  { name: 'SCIKIT-LEARN', desc: 'Modelado predictivo ML' },
   { name: 'PANDAS', desc: 'Análisis y manipulación' },
   { name: 'DJANGO REST', desc: 'API robusta en backend' },
   { name: 'REACT', desc: 'Interfaz de usuario moderna' },
@@ -44,7 +41,7 @@ export default function Landing() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [dragActive, setDragActive] = useState(false)
-  
+
   // Theme state (Light is default)
   const [isDarkMode, setIsDarkMode] = useState(false)
 
@@ -101,22 +98,22 @@ export default function Landing() {
   }
 
   const handleUpload = async () => {
-  if (!file) {
-    setError('Selecciona un archivo primero')
-    return
-  }
+    if (!file) {
+      setError('Selecciona un archivo primero')
+      return
+    }
 
-  setUploading(true)
-  setError(null)
+    setUploading(true)
+    setError(null)
 
-  try {
-    const response = await datasetsAPI.upload(file)
-    navigate(`/dashboard/${response.data.id}`)
-  } catch (err) {
-    setError(err.response?.data?.error || err.response?.data?.detail || 'Error al procesar el archivo CSV')
-    setUploading(false)
+    try {
+      const response = await datasetsAPI.upload(file)
+      navigate(`/dashboard/${response.data.id}`)
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.detail || 'Error al procesar el archivo CSV')
+      setUploading(false)
+    }
   }
-}
 
   const triggerFileInput = () => {
     document.getElementById('fileInput').click()
@@ -133,7 +130,7 @@ export default function Landing() {
   const accentHex = '#ef4444' // Vibrant Red
   const chartBg = isDarkMode ? '#0d121f' : '#ffffff'
   const tooltipBorder = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
-  
+
   // Custom multi-color palette for the DuckDB bar chart
   const barColors = ['#ef4444', '#f43f5e', '#fb7185', '#fda4af']
 
@@ -143,8 +140,10 @@ export default function Landing() {
       overflowX: 'hidden',
       paddingBottom: '100px',
     }}>
+      <TopographicBackground isDark={isDarkMode} />
+
       {/* Theme Toggle Button */}
-      <button 
+      <button
         onClick={() => setIsDarkMode(!isDarkMode)}
         style={{
           position: 'fixed',
@@ -190,12 +189,12 @@ export default function Landing() {
       {/* Radial ambient glow in background */}
       <div style={{
         position: 'absolute',
-        top: 0,
+        top: '-300px',
         left: '50%',
         transform: 'translateX(-50%)',
-        width: '1200px',
-        height: '600px',
-        background: 'radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, transparent 70%)',
+        width: '1400px',
+        height: '1200px',
+        background: 'radial-gradient(ellipse at center top, rgba(239, 68, 68, 0.50) 0%, transparent 65%)',
         pointerEvents: 'none',
         zIndex: 0,
       }} />
@@ -340,86 +339,70 @@ export default function Landing() {
         }
       `}</style>
 
-      {/* Centered Premium Branding Header */}
-      <header style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '40px 20px 20px',
-        position: 'relative',
-        zIndex: 10,
-      }}>
-        <div style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--text-main)' }}>
-          ANALYZOR<span style={{ color: 'var(--accent)' }}>.</span>
-        </div>
-      </header>
+      {/* Fullscreen Hero Wrapper */}
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingBottom: '40px' }}>
 
-      {/* Hero Section */}
-      <section style={{
-        maxWidth: '850px',
-        margin: '60px auto 40px',
-        textAlign: 'center',
-        padding: '0 20px',
-        position: 'relative',
-        zIndex: 10,
-      }}>
-        {/* Release Capsule */}
-        <div style={{
-          display: 'inline-flex',
+        {/* Centered Premium Branding Header */}
+        <header style={{
+          display: 'flex',
+          justifyContent: 'center',
           alignItems: 'center',
-          gap: '8px',
-          background: 'var(--accent-glow)',
-          border: '1px solid var(--accent-glow)',
-          borderRadius: '100px',
-          padding: '6px 14px',
-          marginBottom: '30px',
+          padding: '20px',
+          position: 'relative',
+          zIndex: 10,
         }}>
-          <span className="glow-bullet" style={{
-            width: '6px',
-            height: '6px',
-            background: 'var(--accent)',
-            borderRadius: '50%',
-          }} />
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)', letterSpacing: '0.5px' }}>
-            V1.0 - ANALÍTICA INTELIGENTE CON IA Y SQL
-          </span>
-        </div>
+          <div style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--text-main)' }}>
+            ANALYZOR<span style={{ color: 'var(--accent)' }}>.</span>
+          </div>
+        </header>
 
-        {/* Heading */}
-        <h1 className="hero-title">
-          Habla con tus datos.<br />
-          <span style={{ fontStyle: 'italic', fontWeight: 300, color: 'var(--text-muted)' }}>Construye inteligencia.</span>
-        </h1>
-
-        {/* Subtitle */}
-        <p style={{
-          fontSize: '18px',
-          color: 'var(--text-muted)',
-          lineHeight: 1.6,
-          maxWidth: '680px',
-          margin: '0 auto 40px',
+        {/* Hero Section */}
+        <section style={{
+          maxWidth: '850px',
+          margin: '20px auto 40px',
+          textAlign: 'center',
+          padding: '0 20px',
+          position: 'relative',
+          zIndex: 10,
         }}>
-          Consultas SQL, modelos predictivos y análisis avanzados desde una interfaz impulsada por IA.
-        </p>
 
-        {/* Hero CTAs */}
-        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-          <button className="btn-primary" onClick={scrollToUploadZone}>
-            Cargar un CSV Gratis
-          </button>
-          <button className="btn-secondary" onClick={() => {
-            const el = document.getElementById('features')
-            el?.scrollIntoView({ behavior: 'smooth' })
+
+          {/* Heading */}
+          <h1 className="hero-title">
+            Habla con tus datos.<br />
+            <span style={{ fontStyle: 'italic', fontWeight: 300, color: 'var(--text-muted)' }}>Construye inteligencia.</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p style={{
+            fontSize: '18px',
+            color: 'var(--text-muted)',
+            lineHeight: 1.6,
+            maxWidth: '680px',
+            margin: '0 auto 40px',
           }}>
-            Ver Funcionalidades
-          </button>
-        </div>
-      </section>
+            Consultas SQL, perfilado automático y análisis estadístico avanzado impulsado por IA.
+          </p>
+
+          {/* Hero CTAs */}
+          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+            <button className="btn-primary" onClick={scrollToUploadZone}>
+              Cargar un CSV Gratis
+            </button>
+            <button className="btn-secondary" onClick={() => {
+              const el = document.getElementById('features')
+              el?.scrollIntoView({ behavior: 'smooth' })
+            }}>
+              Ver Funcionalidades
+            </button>
+          </div>
+        </section>
+      </div>
 
       {/* Interactive Mock Dashboard Panel */}
       <section style={{
         maxWidth: '1000px',
-        margin: '60px auto 100px',
+        margin: '20px auto 0',
         padding: '0 20px',
         position: 'relative',
         zIndex: 10,
@@ -448,34 +431,28 @@ export default function Landing() {
           {/* Charts Grid */}
           <div className="grid-2">
 
-            {/* ML Training Accuracy Area Chart */}
+            {/* Distribution Bar Chart */}
             <div style={{ background: 'var(--chart-bg)', borderRadius: '12px', padding: '20px', height: '260px', position: 'relative', border: '1px solid var(--card-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Precisión de Entrenamiento ML (Random Forest)</h3>
-                <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>Acc: 96.4%</span>
+                <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Histograma: Precios</h3>
+                <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>N = 1,075</span>
               </div>
               <div style={{ width: '100%', height: '180px', minWidth: 0, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height={180}>
-                  <AreaChart data={mlTrainingData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                  <BarChart data={distributionData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
                     <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ background: chartBg, borderColor: tooltipBorder, borderRadius: '6px', color: 'var(--text-main)' }} 
+                    <Tooltip
+                      contentStyle={{ background: chartBg, borderColor: tooltipBorder, borderRadius: '6px', color: 'var(--text-main)' }}
                       itemStyle={{ color: 'var(--text-main)' }}
                       labelStyle={{ color: 'var(--text-main)', fontWeight: 600 }}
                     />
-                    <defs>
-                      <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={accentHex} stopOpacity={0.25} />
-                        <stop offset="95%" stopColor={accentHex} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="precision" name="Precisión" stroke={accentHex} strokeWidth={2} fillOpacity={1} fill="url(#colorAccuracy)" />
-                  </AreaChart>
+                    <Bar dataKey="count" name="Frecuencia" fill={accentHex} radius={[4, 4, 0, 0]} opacity={0.8} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* SQL Query Bar Chart */}
+            {/* SQL Query Pie Chart */}
             <div style={{ background: 'var(--chart-bg)', borderRadius: '12px', padding: '20px', height: '260px', border: '1px solid var(--card-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Consulta SQL: Ventas por Categoría</h3>
@@ -483,19 +460,26 @@ export default function Landing() {
               </div>
               <div style={{ width: '100%', height: '180px', minWidth: 0, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={sqlQueryResult} margin={{ top: 10, right: 5, left: -15, bottom: 0 }}>
-                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ background: chartBg, borderColor: tooltipBorder, borderRadius: '6px', color: 'var(--text-main)' }} 
+                  <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                    <Tooltip
+                      contentStyle={{ background: chartBg, borderColor: tooltipBorder, borderRadius: '6px', color: 'var(--text-main)' }}
                       itemStyle={{ color: 'var(--text-main)' }}
-                      labelStyle={{ color: 'var(--text-main)', fontWeight: 600 }}
                     />
-                    <Bar dataKey="ventas" name="Ventas ($)" radius={[4, 4, 0, 0]}>
+                    <Pie
+                      data={sqlQueryResult}
+                      dataKey="ventas"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={2}
+                    >
                       {sqlQueryResult.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
                       ))}
-                    </Bar>
-                  </BarChart>
+                    </Pie>
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -506,7 +490,7 @@ export default function Landing() {
       {/* Infinite Technology Ticker Carousel */}
       <section style={{
         maxWidth: '1000px',
-        margin: '0 auto 80px',
+        margin: '80px auto 80px',
         textAlign: 'center',
         padding: '0 20px',
       }}>
@@ -567,9 +551,9 @@ export default function Landing() {
                 </svg>
                 <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px' }}>CSV INGEST</span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '10px' }}>Carga de CSV sin configuraciones</h3>
+              <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '10px' }}>Carga rápida de CSV</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5, maxWidth: '420px' }}>
-                Arrastra cualquier hoja de cálculo. Nuestro motor limpia los datos en backend, infiere los tipos de columnas y optimiza el dataset relacional con DuckDB al instante.
+                Sube cualquier archivo. Nuestro motor limpia datos, infiere columnas y optimiza el dataset con DuckDB al instante.
               </p>
             </div>
 
@@ -656,9 +640,9 @@ export default function Landing() {
                 </svg>
                 <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px' }}>CHATEA CON TUS DATOS</span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '10px' }}>Pregunta en lenguaje natural</h3>
+              <h3 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '10px' }}>Consulta en lenguaje natural</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5 }}>
-                Haz preguntas a tu base de datos tal como las piensas. La IA generará la consulta SQL exacta, extraerá los insights y renderizará el gráfico ideal.
+                Haz preguntas claras. La IA generará el SQL exacto, extraerá insights y mostrará el gráfico ideal para tus datos.
               </p>
             </div>
 
@@ -678,8 +662,8 @@ export default function Landing() {
         <div className="grid-3">
           {[
             {
-              title: 'Modelos ML Integrados',
-              desc: 'Entrena algoritmos de Machine Learning (regresión y clasificación) basados en las columnas de tu CSV con métricas automatizadas en segundos.',
+              title: 'Perfilado Estadístico',
+              desc: 'Calcula automáticamente calidad de datos, estadísticas descriptivas, correlaciones y anomalías al instante.',
               icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
@@ -687,8 +671,8 @@ export default function Landing() {
               )
             },
             {
-              title: 'Editor SQL Relacional',
-              desc: 'Disfruta de la potencia analítica relacional pura escribiendo comandos SQL directos sobre tus datos indexados con DuckDB de alta velocidad.',
+              title: 'Editor SQL Integrado',
+              desc: 'Escribe comandos SQL directos sobre tus datos indexados con DuckDB a alta velocidad.',
               icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
                   <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
@@ -697,8 +681,8 @@ export default function Landing() {
               )
             },
             {
-              title: 'Exportación en 1 clic',
-              desc: 'Genera reportes PDF ejecutivos de tus análisis clave o descarga cualquier resultado de consultas a archivos CSV instantáneamente.',
+              title: 'Reportes y Exportación',
+              desc: 'Genera reportes PDF ejecutivos de tus análisis o descarga resultados en CSV al instante.',
               icon: (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
