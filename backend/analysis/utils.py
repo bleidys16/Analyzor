@@ -65,10 +65,6 @@ def generate_analysis_summary(dataset, analysis):
                 'unique_count': analysis.data_quality.get(col, {}).get('unique_count', 0),
                 'cardinality': analysis.data_quality.get(col, {}).get('cardinality', 0),
                 'is_numeric': col in numeric_cols,
-                'mean': analysis.statistics.get(col, {}).get('mean') if col in numeric_cols else None,
-                'median': analysis.statistics.get(col, {}).get('median') if col in numeric_cols else None,
-                'min': analysis.statistics.get(col, {}).get('min') if col in numeric_cols else None,
-                'max': analysis.statistics.get(col, {}).get('max') if col in numeric_cols else None,
             }
             for col in columns
         ],
