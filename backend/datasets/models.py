@@ -6,7 +6,7 @@ class Dataset(models.Model):
     session_id = models.CharField(max_length=100, db_index=True)
     name = models.CharField(max_length=255)
     file = models.FileField(upload_to='datasets/')
-    csv_content = models.TextField(blank=True, default='')
+    csv_content = models.TextField(null=True, blank=True, default='')
     columns = models.JSONField(default=list)
     rows_count = models.IntegerField()
     file_size = models.IntegerField()

@@ -56,6 +56,8 @@ class DatasetUploadView(APIView):
         try:
             file.seek(0)
             csv_text = file.read().decode('utf-8') if hasattr(file, 'read') else ''
+            if csv_text is None:
+                csv_text = ''
             file.seek(0)
             dataset = Dataset.objects.create(
                 session_id=session_id,
