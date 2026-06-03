@@ -53,10 +53,7 @@ function DatasetSummary({ dataset, analysis }) {
                 <th style={thStyle}>Tipo</th>
                 <th style={thStyle}>Nulos</th>
                 <th style={thStyle}>Únicos</th>
-                <th style={thStyle}>Media</th>
-                <th style={thStyle}>Mediana</th>
-                <th style={thStyle}>Mín</th>
-                <th style={thStyle}>Máx</th>
+                
               </tr>
             </thead>
             <tbody>
@@ -85,10 +82,7 @@ function DatasetSummary({ dataset, analysis }) {
                       </span>
                     </td>
                     <td style={tdStyle}>{dq.unique_count ?? '—'}</td>
-                    <td style={tdStyle}>{isNum && stats.mean !== undefined && stats.mean !== null ? Number(stats.mean).toFixed(2) : '—'}</td>
-                    <td style={tdStyle}>{isNum && stats.median !== undefined && stats.median !== null ? Number(stats.median).toFixed(2) : '—'}</td>
-                    <td style={tdStyle}>{isNum && stats.min !== undefined && stats.min !== null ? Number(stats.min).toFixed(2) : '—'}</td>
-                    <td style={tdStyle}>{isNum && stats.max !== undefined && stats.max !== null ? Number(stats.max).toFixed(2) : '—'}</td>
+                    
                   </tr>
                 )
               })}
