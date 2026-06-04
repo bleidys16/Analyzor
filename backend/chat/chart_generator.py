@@ -26,8 +26,12 @@ class ChartGenerator:
         
         # Lógica de detección
         if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
-            # Categoría + número = Bar chart
+            if len(data) <= 8:
+                return ChartGenerator._create_pie_chart(data, categorical_cols[0], numeric_cols[0])
             return ChartGenerator._create_bar_chart(data, categorical_cols[0], numeric_cols[0])
+        
+        elif len(categorical_cols) >= 1 and len(numeric_cols) == 0:
+            return ChartGenerator._create_pie_chart(data, categorical_cols[0], None)
         
         elif len(numeric_cols) >= 2:
             # Dos números = Scatter plot
@@ -40,6 +44,23 @@ class ChartGenerator:
         else:
             return {'type': 'text', 'message': 'No se puede generar gráfico con estos datos'}
     
+    @staticmethod
+    def _create_pie_chart(data: List[Dict], cat_col: str, num_col: str = None) -> Dict[str, Any]:
+        """Crea configuración de pie chart"""
+        chart_data = []
+        for row in data[:12]:
+            label = str(row.get(cat_col, 'N/A'))[:20]
+            value = float(row.get(num_col, 0)) if num_col and isinstance(row.get(num_col), (int, float)) else 1
+            chart_data.append({
+                'name': label,
+                'value': value,
+            })
+        return {
+            'type': 'pie',
+            'title': f'Distribución de {cat_col}' if num_col is None else f'{num_col} por {cat_col}',
+            'data': chart_data,
+        }
+
     @staticmethod
     def _create_bar_chart(data: List[Dict], x_col: str, y_col: str) -> Dict[str, Any]:
         """Crea configuración de bar chart"""

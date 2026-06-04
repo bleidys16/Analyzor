@@ -85,7 +85,23 @@ class FallbackSQLGenerator:
                 return f"SELECT \"{cat_cols[0]}\", COUNT(*) AS \"conteo\" FROM data GROUP BY \"{cat_cols[0]}\" ORDER BY \"conteo\" DESC LIMIT 20"
             return None
 
-        # 9. Mostrar datos / preview
+        # 9. Gráfico de torta / pie / porcentaje
+        if any(word in question_lower for word in ['torta', 'pie', 'pastel', 'porcentaje', 'circular']):
+            if matched_columns:
+                col = matched_columns[0]
+                return f"SELECT \"{col}\", COUNT(*) AS \"conteo\" FROM data WHERE \"{col}\" IS NOT NULL GROUP BY \"{col}\" ORDER BY \"conteo\" DESC"
+            if columns:
+                return f"SELECT \"{columns[0]}\", COUNT(*) AS \"conteo\" FROM data WHERE \"{columns[0]}\" IS NOT NULL GROUP BY \"{columns[0]}\" ORDER BY \"conteo\" DESC"
+            return None
+
+        # 10. Distribución por columna / agrupar por
+        if any(word in question_lower for word in ['distribución por', 'distribucion por', 'distribuye', 'agrupa por']):
+            if matched_columns:
+                col = matched_columns[0]
+                return f"SELECT \"{col}\", COUNT(*) AS \"conteo\" FROM data WHERE \"{col}\" IS NOT NULL GROUP BY \"{col}\" ORDER BY \"conteo\" DESC"
+            return None
+
+        # 11. Mostrar datos / preview
         if any(word in question_lower for word in ['muestra', 'mostrar', 'ver', 'show', 'display', 'todos', 'datos', 'lista', 'listar', 'primeros']):
             return "SELECT * FROM data LIMIT 50"
 

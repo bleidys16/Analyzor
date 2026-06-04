@@ -237,7 +237,8 @@ def message(self, request):
         is_valid_sql = (
             sql and 
             sql.strip().upper().startswith('SELECT') and 
-            not sql.startswith('Error')
+            not sql.startswith('Error') and
+            'table_name' not in sql.lower()
         )
         
         if not is_valid_sql:

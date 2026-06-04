@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { BarChart, Bar, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, ScatterChart, Scatter, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-const chartColors = ['#ef4444', '#f43f5e', '#fb7185', '#fda4af']
+const chartColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
+const pieColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#d946ef']
 
 function ChartRenderer({ chartConfig }) {
   if (!chartConfig || chartConfig.type === 'text') return null
@@ -49,6 +50,42 @@ function ChartRenderer({ chartConfig }) {
               <Scatter name="Datos" data={chartConfig.data} fill={chartColors[0]} />
             </ScatterChart>
           </ResponsiveContainer>
+        </div>
+      )
+
+    case 'pie':
+      return (
+        <div style={{ width: '100%', height: '240px', marginTop: '12px' }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie
+                data={chartConfig.data}
+                cx="50%" cy="50%"
+                innerRadius={50}
+                outerRadius={90}
+                paddingAngle={2}
+                dataKey="value"
+                nameKey="name"
+                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+              >
+                {chartConfig.data.map((_, i) => (
+                  <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '8px', fontSize: '12px' }}
+                labelStyle={{ fontWeight: 600, color: 'var(--text-main)' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginTop: '4px' }}>
+            {chartConfig.data.map((d, i) => (
+              <span key={i} style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: pieColors[i % pieColors.length], display: 'inline-block' }} />
+                {d.name}
+              </span>
+            ))}
+          </div>
         </div>
       )
 
@@ -119,6 +156,7 @@ const SUGGESTIONS = [
   '¿Cómo se distribuyen los datos?',
   'Muéstrame un resumen general',
   '¿Hay alguna correlación entre columnas?',
+  'Gráfico de torta por género',
 ]
 
 export default function ChatMessages({ messages = [], sending = false, onSend }) {
