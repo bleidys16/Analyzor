@@ -102,7 +102,13 @@ def send_message(request):
                 sql_fixed = re.sub(r'\bFROM\s+' + re.escape(old_table), 'FROM data', sql_fixed, flags=re.IGNORECASE)
             sql_fixed = re.sub(r'\bFROM\s+"([^"]+)"', 'FROM data', sql_fixed, flags=re.IGNORECASE)
                     
-            engine = SQLEngine(get_csv_tempfile(dataset))
+            csv_path = get_csv_tempfile(dataset)
+            if not csv_path:
+                raise FileNotFoundError(
+                    f"El archivo del dataset '{dataset.name}' no está disponible. "
+                    "Debes subir el CSV nuevamente desde la sección de datasets."
+                )
+            engine = SQLEngine(csv_path)
             result = engine.execute(sql_fixed)
             
             if not result.get('error'):
@@ -128,12 +134,20 @@ def send_message(request):
     else:
         # No se pudo generar SQL - responder con chat general
         try:
-            df = pd.read_csv(get_csv_tempfile(dataset))
-            context = (
-                f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
-                f"Columnas: {', '.join(columns_list)}\n\n"
-                f"Primeras 5 filas:\n{df.head(5).to_string()}"
-            )
+            csv_path = get_csv_tempfile(dataset)
+            if csv_path:
+                df = pd.read_csv(csv_path)
+                context = (
+                    f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
+                    f"Columnas: {', '.join(columns_list)}\n\n"
+                    f"Primeras 5 filas:\n{df.head(5).to_string()}"
+                )
+            else:
+                context = (
+                    f"Dataset: {dataset.name}\n"
+                    f"Columnas disponibles: {', '.join(columns_list)}\n"
+                    f"Filas: {dataset.rows_count}\n"
+                )
             answer = provider.chat(str(content).strip(), context)
         except Exception as e:
             answer = f"Error al analizar: {str(e)}"
@@ -265,7 +279,13 @@ def message(self, request):
                     sql = re.sub(re.escape(old_table) + r'\.', 'data.', sql)
                     sql = re.sub(r'\bFROM\s+' + re.escape(old_table), 'FROM data', sql, flags=re.IGNORECASE)
                 sql = re.sub(r'\bFROM\s+"([^"]+)"', 'FROM data', sql, flags=re.IGNORECASE)
-                engine = SQLEngine(get_csv_tempfile(dataset))
+                csv_path = get_csv_tempfile(dataset)
+                if not csv_path:
+                    raise FileNotFoundError(
+                        f"El archivo del dataset '{dataset.name}' no está disponible. "
+                        "Debes subir el CSV nuevamente desde la sección de datasets."
+                    )
+                engine = SQLEngine(csv_path)
                 result = engine.execute(sql)
                 
                 if not result.get('error'):
@@ -291,12 +311,20 @@ def message(self, request):
         elif not response_text:
             # No se pudo generar SQL - responder con chat general
             try:
-                df = pd.read_csv(get_csv_tempfile(dataset))
-                context = (
-                    f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
-                    f"Columnas: {', '.join(columns_list)}\n\n"
-                    f"Primeras 5 filas:\n{df.head(5).to_string()}"
-                )
+                csv_path = get_csv_tempfile(dataset)
+                if csv_path:
+                    df = pd.read_csv(csv_path)
+                    context = (
+                        f"Dataset con {len(df)} filas y {len(df.columns)} columnas. "
+                        f"Columnas: {', '.join(columns_list)}\n\n"
+                        f"Primeras 5 filas:\n{df.head(5).to_string()}"
+                    )
+                else:
+                    context = (
+                        f"Dataset: {dataset.name}\n"
+                        f"Columnas disponibles: {', '.join(columns_list)}\n"
+                        f"Filas: {dataset.rows_count}\n"
+                    )
                 response_text = ai_provider.chat(user_message, context)
             except Exception as e:
                 response_text = f"Error al analizar datos: {str(e)}"
