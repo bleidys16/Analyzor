@@ -94,7 +94,13 @@ def send_message(request):
         try:
             sql_fixed = sql
             import re
-            sql_fixed = re.sub(r'\bFROM\s+\w+', 'FROM data', sql_fixed, flags=re.IGNORECASE)
+            # Replace qualified references (old_table.col → data.col)
+            m = re.search(r'\bFROM\s+(\w+)', sql_fixed, re.IGNORECASE)
+            if m:
+                old_table = m.group(1)
+                sql_fixed = re.sub(re.escape(old_table) + r'\.', 'data.', sql_fixed)
+                sql_fixed = re.sub(r'\bFROM\s+' + re.escape(old_table), 'FROM data', sql_fixed, flags=re.IGNORECASE)
+            sql_fixed = re.sub(r'\bFROM\s+"([^"]+)"', 'FROM data', sql_fixed, flags=re.IGNORECASE)
                     
             engine = SQLEngine(get_csv_tempfile(dataset))
             result = engine.execute(sql_fixed)
@@ -253,7 +259,12 @@ def message(self, request):
         if is_valid_sql:
             try:
                 import re
-                sql = re.sub(r'\bFROM\s+\w+', 'FROM data', sql, flags=re.IGNORECASE)
+                m = re.search(r'\bFROM\s+(\w+)', sql, re.IGNORECASE)
+                if m:
+                    old_table = m.group(1)
+                    sql = re.sub(re.escape(old_table) + r'\.', 'data.', sql)
+                    sql = re.sub(r'\bFROM\s+' + re.escape(old_table), 'FROM data', sql, flags=re.IGNORECASE)
+                sql = re.sub(r'\bFROM\s+"([^"]+)"', 'FROM data', sql, flags=re.IGNORECASE)
                 engine = SQLEngine(get_csv_tempfile(dataset))
                 result = engine.execute(sql)
                 
