@@ -6,7 +6,35 @@ class FallbackSQLGenerator:
     """Genera SQL para preguntas comunes sin depender de IA externa"""
 
     @staticmethod
-    def generate(question: str, columns: list) -> Optional[str]:
+    def _is_numeric_col(col: str, dtypes: dict = None) -> bool:
+        if dtypes and col in dtypes:
+            dtype_str = str(dtypes[col]).lower()
+            return any(t in dtype_str for t in ['int', 'float', 'double', 'decimal', 'number', 'numeric'])
+        numeric_keywords = ['edad', 'age', 'gasto', 'precio', 'price', 'salario', 'salary',
+                           'score', 'count', 'total', 'monto', 'cantidad', 'quantity',
+                           'año', 'year', 'altura', 'height', 'peso', 'weight', 'valor',
+                           'id_cliente', 'id_']
+        col_lower = col.lower()
+        return any(kw in col_lower for kw in numeric_keywords)
+
+    @staticmethod
+    def _first_numeric(cols: list, dtypes: dict = None) -> list:
+        result = []
+        for col in cols:
+            if FallbackSQLGenerator._is_numeric_col(col, dtypes):
+                result.append(col)
+        return result
+
+    @staticmethod
+    def _all_numeric(cols: list, dtypes: dict = None) -> list:
+        result = []
+        for col in cols:
+            if FallbackSQLGenerator._is_numeric_col(col, dtypes):
+                result.append(col)
+        return result if result else (cols[:1] if cols else [])
+
+    @staticmethod
+    def generate(question: str, columns: list, dtypes: dict = None) -> Optional[str]:
         question_lower = question.lower().strip()
 
         # Detectar columnas en la pregunta - buscar coincidencias parciales
@@ -21,13 +49,17 @@ class FallbackSQLGenerator:
                 if any(part in question_lower for part in col_parts):
                     matched_columns.append(col)
 
+        # Helper: generate AVG for all numeric columns
+        numeric_cols = FallbackSQLGenerator._all_numeric(columns, dtypes)
+
         # 1. Preguntas de promedio / media
         if any(word in question_lower for word in ['promedio', 'media', 'average', 'avg', 'mean']):
             if matched_columns:
                 col = matched_columns[0]
                 return f"SELECT AVG(\"{col}\") AS \"promedio_{col}\" FROM data"
-            if columns:
-                return f"SELECT AVG(\"{columns[0]}\") AS \"promedio\" FROM data"
+            if numeric_cols:
+                avg_parts = [f'AVG(\"{c}\") AS \"promedio_{c}\"' for c in numeric_cols]
+                return "SELECT " + ", ".join(avg_parts) + " FROM data"
             return None
 
         # 2. Preguntas de suma / total
@@ -35,6 +67,9 @@ class FallbackSQLGenerator:
             if matched_columns:
                 col = matched_columns[0]
                 return f"SELECT SUM(\"{col}\") AS \"total_{col}\" FROM data"
+            if numeric_cols:
+                sum_parts = [f'SUM(\"{c}\") AS \"total_{c}\"' for c in numeric_cols]
+                return "SELECT " + ", ".join(sum_parts) + " FROM data"
             return None
 
         # 3. Preguntas de máximo
@@ -42,6 +77,9 @@ class FallbackSQLGenerator:
             if matched_columns:
                 col = matched_columns[0]
                 return f"SELECT MAX(\"{col}\") AS \"max_{col}\" FROM data"
+            if numeric_cols:
+                max_parts = [f'MAX(\"{c}\") AS \"max_{c}\"' for c in numeric_cols]
+                return "SELECT " + ", ".join(max_parts) + " FROM data"
             return None
 
         # 4. Preguntas de mínimo
@@ -49,6 +87,9 @@ class FallbackSQLGenerator:
             if matched_columns:
                 col = matched_columns[0]
                 return f"SELECT MIN(\"{col}\") AS \"min_{col}\" FROM data"
+            if numeric_cols:
+                min_parts = [f'MIN(\"{c}\") AS \"min_{c}\"' for c in numeric_cols]
+                return "SELECT " + ", ".join(min_parts) + " FROM data"
             return None
 
         # 5. Preguntas de conteo / cuántos
@@ -119,22 +160,46 @@ class FallbackSQLGenerator:
 
         question_lower = question.lower()
 
-        if row_count == 1 and len(data[0]) == 1:
-            col = columns[0]
-            val = list(data[0].values())[0]
-            if any(w in question_lower for w in ['promedio', 'media', 'average', 'avg']):
-                col_name = col.replace('promedio_', '').replace('avg_', '')
-                return f"El promedio de **{col_name}** es **{val:.2f}**"
-            if any(w in question_lower for w in ['máximo', 'maximo', 'mayor', 'max']):
-                col_name = col.replace('max_', '')
-                return f"El valor máximo de **{col_name}** es **{val}**"
-            if any(w in question_lower for w in ['mínimo', 'minimo', 'menor', 'min']):
-                col_name = col.replace('min_', '')
-                return f"El valor mínimo de **{col_name}** es **{val}**"
-            if any(w in question_lower for w in ['suma', 'sum', 'total']):
-                col_name = col.replace('total_', '')
-                return f"La suma total de **{col_name}** es **{val:.2f}**"
-            return f"El resultado es: **{val}**"
+        if row_count == 1 and len(data[0]) >= 1:
+            question_is_avg = any(w in question_lower for w in ['promedio', 'media', 'average', 'avg', 'mean'])
+            question_is_max = any(w in question_lower for w in ['máximo', 'maximo', 'mayor', 'max'])
+            question_is_min = any(w in question_lower for w in ['mínimo', 'minimo', 'menor', 'min'])
+            question_is_sum = any(w in question_lower for w in ['suma', 'sum', 'total'])
+
+            if len(data[0]) == 1:
+                col = columns[0]
+                val = list(data[0].values())[0]
+                if question_is_avg:
+                    col_name = col.replace('promedio_', '').replace('avg_', '')
+                    return f"El promedio de **{col_name}** es **{val:.2f}**"
+                if question_is_max:
+                    col_name = col.replace('max_', '')
+                    return f"El valor máximo de **{col_name}** es **{val}**"
+                if question_is_min:
+                    col_name = col.replace('min_', '')
+                    return f"El valor mínimo de **{col_name}** es **{val}**"
+                if question_is_sum:
+                    col_name = col.replace('total_', '')
+                    return f"La suma total de **{col_name}** es **{val:.2f}**"
+                return f"El resultado es: **{val}**"
+
+            # Multi-columna: varios resultados (promedios de todas las numéricas)
+            lines = []
+            row = data[0]
+            prefix = "promedio" if question_is_avg else "máximo" if question_is_max else "mínimo" if question_is_min else "total"
+            for col in columns:
+                val = row.get(col)
+                if val is None:
+                    continue
+                col_name = col.replace(f'{prefix}_', '').replace('promedio_', '').replace('max_', '').replace('min_', '').replace('total_', '')
+                if isinstance(val, (int, float)):
+                    if question_is_avg or question_is_sum:
+                        lines.append(f"  • **{col_name}**: {val:.2f}")
+                    else:
+                        lines.append(f"  • **{col_name}**: {val}")
+            if lines:
+                return "Resultados:\n" + "\n".join(lines)
+            return f"Se encontraron {row_count} resultados."
 
         if 'GROUP BY' in sql.upper():
             col_label = columns[0]

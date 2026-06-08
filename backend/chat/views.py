@@ -84,7 +84,7 @@ def send_message(request):
 
     if not is_valid_sql:
         # Fallback: generar SQL local sin IA
-        fallback_sql = FallbackSQLGenerator.generate(str(content).strip(), columns_list)
+        fallback_sql = FallbackSQLGenerator.generate(str(content).strip(), columns_list, dataset.dtypes)
         if fallback_sql:
             sql = fallback_sql
             is_valid_sql = True
@@ -249,7 +249,7 @@ def message(self, request):
         
         if not is_valid_sql:
             # Fallback: generar SQL local sin IA
-            fallback_sql = FallbackSQLGenerator.generate(str(user_message).strip(), columns_list)
+            fallback_sql = FallbackSQLGenerator.generate(str(user_message).strip(), columns_list, dataset.dtypes)
             if fallback_sql:
                 sql = fallback_sql
                 is_valid_sql = True
