@@ -22,7 +22,7 @@ services:
       - key: ALLOWED_HOSTS
         value: ".onrender.com,analyzor-backend.onrender.com"
       - key: OPENROUTER_API_KEY
-        sync: false
+        value: ""
       - key: OLLAMA_URL
         value: ""
 
