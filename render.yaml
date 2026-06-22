@@ -25,10 +25,6 @@ services:
         sync: false
       - key: OLLAMA_URL
         value: ""
-    disk:
-      name: media
-      mountPath: /opt/render/project/src/backend/media
-      sizeGB: 1
 
   # ─── Frontend: React SPA ──────────────────────────────────
   - type: web
