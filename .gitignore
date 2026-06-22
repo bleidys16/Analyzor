@@ -57,4 +57,3 @@ build/
 .cache/
 .coverage
 htmlcov/
-.vercel

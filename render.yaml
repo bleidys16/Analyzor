@@ -1,0 +1,53 @@
+services:
+  # ─── Backend: Django API ──────────────────────────────────
+  - type: web
+    name: analyzor-backend
+    env: python
+    region: ohio
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && bash entrypoint.sh
+    healthCheckPath: /api/datasets/
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ENV
+        value: "production"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,analyzor-backend.onrender.com"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OLLAMA_URL
+        value: ""
+    disk:
+      name: media
+      mountPath: /opt/render/project/src/backend/media
+      sizeGB: 1
+
+  # ─── Frontend: React SPA ──────────────────────────────────
+  - type: web
+    name: analyzor-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://analyzor-backend.onrender.com
