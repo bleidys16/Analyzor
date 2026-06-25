@@ -4,14 +4,10 @@ Plataforma de análisis de datos con IA. Sube archivos CSV, haz consultas en len
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
 ![Django](https://img.shields.io/badge/Django-4.2%2B-darkgreen.svg)
-![DRF](https://img.shields.io/badge/DRF-3.17%2B-red.svg)
 ![React](https://img.shields.io/badge/React-19%2B-61DAFB.svg)
-![Vite](https://img.shields.io/badge/Vite-6%2B-646CFF.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-316192.svg)
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.5%2B-FFF000.svg)
 ![Groq](https://img.shields.io/badge/Groq-Llama%203-1A1A2E.svg)
-![Scikit--learn](https://img.shields.io/badge/Scikit--learn-1.9%2B-orange.svg)
-![Gunicorn](https://img.shields.io/badge/Gunicorn-22%2B-499848.svg)
 
 ## Funcionalidades
 
