@@ -1,6 +1,6 @@
 # Analyzor
 
-Plataforma de análisis de datos con IA. Sube archivos CSV, haz consultas en lenguaje natural y obtén visualizaciones automáticas.
+Analyzor es una plataforma que combina inteligencia artificial con análisis de datos tradicional para que cualquier persona pueda explorar sus datasets usando lenguaje natural. Sube un CSV, haz preguntas como si hablaras con un analista, y obtén respuestas con gráficos, tablas y reportes PDF al instante.
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
 ![Django](https://img.shields.io/badge/Django-4.2%2B-darkgreen.svg)
@@ -11,12 +11,12 @@ Plataforma de análisis de datos con IA. Sube archivos CSV, haz consultas en len
 
 ## Funcionalidades
 
-- **Chat con IA** — Haz preguntas en lenguaje natural sobre tus datos. La IA genera SQL, lo ejecuta y responde con texto + gráficas.
-- **Chat híbrido** — Cuando la IA no genera SQL válido, un motor local DuckDB con reglas predefinidas toma el control.
+- **Chat con IA** — Haz preguntas en lenguaje natural sobre tus datos. La IA genera SQL, lo ejecuta y responde con texto + gráficos.
+- **Chat híbrido** — Cuando la IA falla, un motor DuckDB con reglas predefinidas toma el control automáticamente.
 - **Perfilado automático** — Estadísticas descriptivas (media, mediana, desviación, percentiles), histogramas y gráficos de dona.
-- **Gestión de datasets** — Subida, vista previa (tabla interactiva), eliminación, historial por sesión.
+- **Gestión de datasets** — Subida, vista previa interactiva, eliminación e historial por sesión.
+- **Exportación a PDF** — Genera reportes con tablas y gráficos listos para compartir.
 - **Tema oscuro/claro** — Con persistencia en localStorage.
-- **Landing page** — Hero responsivo con glow animado, carrusel de tecnologías y sección de funcionalidades.
 
 ## Estructura
 
@@ -39,6 +39,12 @@ analyzor/
 │   └── public/            # Logo, favicon
 └── README.md
 ```
+
+## Requisitos del sistema
+
+- **Python** 3.11+
+- **Node.js** 18+
+- **PostgreSQL** 16+ (opcional, usa SQLite por defecto en local)
 
 ## Desarrollo local
 
