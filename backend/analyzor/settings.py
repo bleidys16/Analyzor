@@ -87,7 +87,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
-    'https://analyzor.vercel.app',
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
@@ -95,9 +94,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r'^https://analyzor-.*\.vercel\.app$',
     r'^https://.*\.onrender\.com$',
-    r'^https://.*\.up\.railway\.app$',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -124,8 +121,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
-    "https://analyzor.vercel.app",
-    "https://analyzor-97t9zl99w-bleidys-projects.vercel.app",
+    "https://*.onrender.com",
 ]
 
 CSRF_COOKIE_SECURE = not DEBUG

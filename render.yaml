@@ -7,7 +7,7 @@ services:
     plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && bash entrypoint.sh
-    healthCheckPath: /api/datasets/
+    healthCheckPath: /api/health/
     envVars:
       - key: DATABASE_URL
         sync: false
