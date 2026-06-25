@@ -1,34 +1,17 @@
-# ANALYZOR
-
-<p align="center">
-  <img src="frontend/public/faviconA.png" alt="Analyzor" height="80"/>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black" alt="JavaScript"/>
-  <img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React"/>
-  <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite"/>
-  <br/>
-  <img src="https://img.shields.io/badge/Django-092E20?style=flat-square&logo=django&logoColor=white" alt="Django"/>
-  <img src="https://img.shields.io/badge/Groq-1A1A2E?style=flat-square&logo=groq&logoColor=00E7A0" alt="Groq"/>
-  <img src="https://img.shields.io/badge/OpenRouter-FF6B35?style=flat-square&logo=openai&logoColor=white" alt="OpenRouter"/>
-  <img src="https://img.shields.io/badge/DuckDB-FFF000?style=flat-square&logo=duckdb&logoColor=black" alt="DuckDB"/>
-  <br/>
-  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
-  <img src="https://img.shields.io/badge/Recharts-22B5BF?style=flat-square&logo=recharts&logoColor=white" alt="Recharts"/>
-  <img src="https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white" alt="Vercel"/>
-</p>
+# Analyzor
 
 Plataforma de análisis de datos con IA. Sube archivos CSV, haz consultas en lenguaje natural y obtén visualizaciones automáticas.
 
-## Stack
-
-| Frontend | Backend | IA | Base de datos |
-|----------|---------|----|---------------|
-| React 19 + Vite 8 | Django 4.2 + DRF | Groq (Llama 3 70B) | DuckDB (análisis) |
-| Recharts | DuckDB | Ollama (local) | PostgreSQL (app) |
-| React Router 7 | Gunicorn | SQL generativo | Neon / Supabase |
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
+![Django](https://img.shields.io/badge/Django-4.2%2B-darkgreen.svg)
+![DRF](https://img.shields.io/badge/DRF-3.17%2B-red.svg)
+![React](https://img.shields.io/badge/React-19%2B-61DAFB.svg)
+![Vite](https://img.shields.io/badge/Vite-6%2B-646CFF.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-316192.svg)
+![DuckDB](https://img.shields.io/badge/DuckDB-1.5%2B-FFF000.svg)
+![Groq](https://img.shields.io/badge/Groq-Llama%203-1A1A2E.svg)
+![Scikit--learn](https://img.shields.io/badge/Scikit--learn-1.9%2B-orange.svg)
+![Gunicorn](https://img.shields.io/badge/Gunicorn-22%2B-499848.svg)
 
 ## Funcionalidades
 
@@ -95,6 +78,4 @@ npm run dev
 
 ## Despliegue
 
-- **Frontend**: Vercel (build: `npm run build`, output: `dist/`)
-- **Backend**: Render / Railway (start: `gunicorn analyzor.wsgi`)
-- **Base de datos**: Neon (PostgreSQL)
+Ambos servicios se despliegan automáticamente desde GitHub vía Render Blueprint (`render.yaml`).
