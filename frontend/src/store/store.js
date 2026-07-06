@@ -13,10 +13,6 @@ export const useStore = create((set) => ({
   analysisData: null,
   setAnalysisData: (data) => set({ analysisData: data }),
 
-  // Models
-  models: [],
-  setModels: (models) => set({ models }),
-
   // Chat messages
   chatMessages: [],
   addChatMessage: (message) =>

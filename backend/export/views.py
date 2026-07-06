@@ -1,5 +1,6 @@
 from io import BytesIO
 from datetime import datetime
+from django.http import HttpResponse
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm, cm
 from reportlab.lib import colors
@@ -9,8 +10,6 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate, Frame
-from reportlab.platypus.tableofcontents import TableOfContents
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -405,7 +404,6 @@ def export_pdf(request):
     doc.build(elements, onFirstPage=header_footer, onLaterPages=header_footer)
     buffer.seek(0)
 
-    from django.http import HttpResponse
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{dataset.name}_reporte.pdf"'
     return response
@@ -432,7 +430,6 @@ def export_csv(request):
 
     buffer.seek(0)
 
-    from django.http import HttpResponse
     response = HttpResponse(buffer, content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="export_{dataset_id[:8]}.csv"'
     return response

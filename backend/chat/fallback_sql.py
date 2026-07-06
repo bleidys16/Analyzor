@@ -18,14 +18,6 @@ class FallbackSQLGenerator:
         return any(kw in col_lower for kw in numeric_keywords)
 
     @staticmethod
-    def _first_numeric(cols: list, dtypes: dict = None) -> list:
-        result = []
-        for col in cols:
-            if FallbackSQLGenerator._is_numeric_col(col, dtypes):
-                result.append(col)
-        return result
-
-    @staticmethod
     def _all_numeric(cols: list, dtypes: dict = None) -> list:
         result = []
         for col in cols:

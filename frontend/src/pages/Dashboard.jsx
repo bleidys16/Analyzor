@@ -282,6 +282,107 @@ export default function Dashboard() {
           .tab-btn:hover {
             color: var(--text-main);
           }
+          .btn-icon {
+            background: var(--code-bg);
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+          }
+          .btn-icon:hover {
+            background: var(--card-border);
+            color: var(--accent);
+          }
+          .btn-ghost {
+            padding: 10px 16px;
+            background: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+          }
+          .btn-ghost:hover {
+            background: var(--card-border);
+          }
+          .btn-accent {
+            padding: 10px 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            opacity: 0.9;
+          }
+          .btn-accent:hover {
+            opacity: 1;
+          }
+          .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+          }
+          .modal-close:hover {
+            background: var(--code-bg);
+          }
+          .ds-card {
+            background: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+          }
+          .ds-card.ds-card-active {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+          }
+          .ds-card:not(.ds-card-active):hover {
+            border-color: var(--accent);
+            background: var(--card-bg);
+          }
+          .ds-del-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-muted);
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+          }
+          .ds-del-btn:hover {
+            background: var(--accent-glow);
+            color: var(--accent);
+          }
         `}</style>
 
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -304,22 +405,7 @@ export default function Dashboard() {
               }}>
                 <button
                   onClick={() => navigate('/')}
-                  style={{
-                    background: 'var(--code-bg)',
-                    border: 'none',
-                    color: 'var(--text-main)',
-                    cursor: 'pointer',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.background = 'var(--card-border)'; e.currentTarget.style.color = 'var(--accent)' }}
-                  onMouseOut={(e) => { e.currentTarget.style.background = 'var(--code-bg)'; e.currentTarget.style.color = 'var(--text-main)' }}
+                  className="btn-icon"
                   title="Volver"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -358,22 +444,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={() => setShowDatasetList(true)}
-                style={{
-                  padding: '10px 16px',
-                  background: 'var(--code-bg)',
-                  border: '1px solid var(--card-border)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: 'var(--text-main)',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'var(--card-border)' }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'var(--code-bg)' }}
+                className="btn-ghost"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -383,23 +454,7 @@ export default function Dashboard() {
 
               <button
                 onClick={handleExportPDF}
-                style={{
-                  padding: '10px 16px',
-                  background: 'var(--accent)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease',
-                  opacity: 0.9,
-                }}
-                onMouseOver={(e) => e.target.style.opacity = '1'}
-                onMouseOut={(e) => e.target.style.opacity = '0.9'}
+                className="btn-accent"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -566,18 +621,7 @@ export default function Dashboard() {
               </h2>
               <button
                 onClick={() => setShowDatasetList(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'var(--code-bg)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                className="modal-close"
               >
                 ✕
               </button>
@@ -591,28 +635,7 @@ export default function Dashboard() {
                     navigate(`/dashboard/${ds.id}`)
                     setShowDatasetList(false)
                   }}
-                  style={{
-                    background: ds.id === datasetId ? 'var(--accent-glow)' : 'var(--code-bg)',
-                    border: ds.id === datasetId ? '1px solid var(--accent)' : '1px solid var(--card-border)',
-                    borderRadius: '10px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                  onMouseOver={(e) => {
-                    if (ds.id !== datasetId) {
-                      e.currentTarget.style.borderColor = 'var(--accent)'
-                      e.currentTarget.style.background = 'var(--card-bg)'
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (ds.id !== datasetId) {
-                      e.currentTarget.style.borderColor = 'var(--card-border)'
-                      e.currentTarget.style.background = 'var(--code-bg)'
-                    }
-                  }}
+                  className={'ds-card' + (ds.id === datasetId ? ' ds-card-active' : '')}
                 >
                   {ds.id === datasetId && (
                     <div style={{

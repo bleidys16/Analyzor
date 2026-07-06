@@ -2,26 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import { useStore } from '../store/store'
-import { AreaChart, Area, BarChart, Bar, PieChart, Pie, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts'
 import TopographicBackground from '../components/TopographicBackground'
-
-// Mock data for statistics distribution (donut chart)
-const statsDistribution = [
-  { name: 'Media', value: 35 },
-  { name: 'Mediana', value: 28 },
-  { name: 'Desviación Est.', value: 20 },
-  { name: 'Percentil 95', value: 17 },
-]
-
-const techStack = [
-  { name: 'DUCKDB', desc: 'Base de datos SQL integrada' },
-  { name: 'PANDAS', desc: 'Análisis y manipulación' },
-  { name: 'DJANGO REST', desc: 'API robusta en backend' },
-  { name: 'REACT', desc: 'Interfaz de usuario moderna' },
-  { name: 'ZUSTAND', desc: 'Gestión de estado fluida' },
-  { name: 'CELERY / REDIS', desc: 'Procesamiento en cola' },
-  { name: 'WEASYPRINT', desc: 'Reportes premium en PDF' },
-]
+import TechTicker from '../components/TechTicker'
+import StatsChart from '../components/StatsChart'
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -144,8 +127,6 @@ export default function Landing() {
   const chartBg = isDarkMode ? '#0d121f' : '#ffffff'
   const tooltipBorder = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
 
-  // Custom multi-color palette for the DuckDB bar chart
-  const barColors = ['#ef4444', '#f43f5e', '#fb7185', '#fda4af']
 
   return (
     <div style={{
@@ -208,10 +189,6 @@ export default function Landing() {
           70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
           100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
-        @keyframes ticker {
-          0% { transform: translate3d(0, 0, 0); }
-          100% { transform: translate3d(-50%, 0, 0); }
-        }
         .glow-bullet {
           animation: pulse-accent 2s infinite;
         }
@@ -253,51 +230,6 @@ export default function Landing() {
         .feature-card:hover {
           border-color: var(--accent-glow);
           transform: translateY(-2px);
-        }
-        .ticker-wrap {
-          width: 100%;
-          overflow: hidden;
-          background: transparent;
-          padding: 30px 0;
-          position: relative;
-          margin: 40px 0 80px;
-        }
-        .ticker-wrap::before, .ticker-wrap::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          width: 150px;
-          height: 100%;
-          z-index: 2;
-          pointer-events: none;
-        }
-        .ticker-wrap::before {
-          left: 0;
-          background: linear-gradient(to right, var(--bg-color) 0%, transparent 100%);
-        }
-        .ticker-wrap::after {
-          right: 0;
-          background: linear-gradient(to left, var(--bg-color) 0%, transparent 100%);
-        }
-        .ticker {
-          display: inline-flex;
-          white-space: nowrap;
-          animation: ticker 30s linear infinite;
-        }
-        .ticker-item {
-          margin: 0 50px;
-          font-size: 14px;
-          font-weight: 700;
-          color: var(--text-muted);
-          letter-spacing: 2px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          transition: color 0.2s ease;
-        }
-        .ticker-item:hover {
-          color: var(--accent);
         }
 
         /* RESPONSIVE DESIGN GRIDS */
@@ -419,28 +351,8 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Tech Ticker - appears on first scroll */}
-        <section style={{
-          maxWidth: '1000px',
-          margin: '0 auto',
-          textAlign: 'center',
-          padding: '80px 20px 40px',
-        }}>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '2.5px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '10px' }}>
-            TECNOLOGÍAS DE ALTO RENDIMIENTO QUE INTEGRAN NUESTRO STACK
-          </p>
-
-          <div className="ticker-wrap">
-            <div className="ticker">
-              {[...techStack, ...techStack].map((tech, i) => (
-                <div key={i} className="ticker-item">
-                  <span style={{ color: 'var(--text-main)' }}>{tech.name}</span>
-                  <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 400 }}>{tech.desc}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* Tech Ticker */}
+        <TechTicker isDark={isDarkMode} />
 
         {/* Features Section */}
       <section id="features" style={{
@@ -592,62 +504,7 @@ export default function Landing() {
         </div>
 
         <div className="grid-3">
-          {/* CARD 1: Perfilado Estadístico + Donut de estadísticas */}
-          <div className="feature-card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '25px 25px 0 25px' }}>
-              <div style={{ marginBottom: '12px' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-              </div>
-              <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Perfilado Estadístico</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5, marginBottom: '16px' }}>
-                Calcula automáticamente calidad de datos, estadísticas descriptivas, correlaciones y anomalías al instante.
-              </p>
-            </div>
-            <div style={{
-              marginTop: 'auto',
-              padding: '12px 10px 10px',
-              borderTop: '1px solid var(--card-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-            }}>
-              <div style={{ width: '110px', height: '110px', flexShrink: 0 }}>
-                <ResponsiveContainer width="100%" height={110}>
-                  <PieChart>
-                    <Pie
-                      data={statsDistribution}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={32}
-                      outerRadius={50}
-                      paddingAngle={3}
-                    >
-                      {statsDistribution.map((_, index) => (
-                        <Cell key={index} fill={barColors[index % barColors.length]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {statsDistribution.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)' }}>
-                    <span style={{
-                      width: '8px', height: '8px', borderRadius: '2px',
-                      background: barColors[i % barColors.length], flexShrink: 0,
-                    }} />
-                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.name}</span>
-                    <span>{item.value}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <StatsChart isDark={isDarkMode} />
 
           {/* CARD 2: Editor SQL Integrado */}
           <div className="feature-card" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>

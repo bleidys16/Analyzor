@@ -1,6 +1,5 @@
 import pandas as pd
 import duckdb
-import json
 import time
 import requests
 import tempfile

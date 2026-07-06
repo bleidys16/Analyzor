@@ -15,11 +15,10 @@ class ChartGenerator:
         categorical_cols = []
         
         for col in columns:
-            if col not in data[0]:
+            vals = [row.get(col) for row in data if row.get(col) is not None]
+            if not vals:
                 continue
-            
-            val = data[0][col]
-            if isinstance(val, (int, float)):
+            if all(isinstance(v, (int, float)) for v in vals):
                 numeric_cols.append(col)
             else:
                 categorical_cols.append(col)
@@ -142,7 +141,7 @@ class ChartGenerator:
         
         chart_data = [
             {'range': label, 'count': count}
-            for label, count in sorted(bins.items())
+            for label, count in sorted(bins.items(), key=lambda x: float(x[0]))
         ]
         
         return {
