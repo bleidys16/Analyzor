@@ -26,6 +26,29 @@ export default function Dashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [allDatasets, setAllDatasets] = useState([])
   const [showDatasetList, setShowDatasetList] = useState(false)
+  const [loadingDatasets, setLoadingDatasets] = useState(false)
+
+  // Cargar lista de datasets solo cuando se abre el modal
+  useEffect(() => {
+    if (!showDatasetList || allDatasets.length > 0) return
+    const loadAll = async () => {
+      setLoadingDatasets(true)
+      try {
+        const allRes = await datasetsAPI.getAll()
+        const all = allRes.data || []
+        const seen = new Map()
+        for (const ds of all) {
+          const key = `${ds.name}_${ds.created_at?.slice(0, 10) || ''}`
+          if (!seen.has(key) || new Date(ds.created_at) > new Date(seen.get(key).created_at)) {
+            seen.set(key, ds)
+          }
+        }
+        setAllDatasets(Array.from(seen.values()))
+      } catch (_) {}
+      setLoadingDatasets(false)
+    }
+    loadAll()
+  }, [showDatasetList])
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
@@ -52,19 +75,6 @@ export default function Dashboard() {
         }
         
         await loadChatHistory()
-
-        try {
-          const allRes = await datasetsAPI.getAll()
-          const all = allRes.data || []
-          const seen = new Map()
-          for (const ds of all) {
-            const key = `${ds.name}_${ds.created_at?.slice(0, 10) || ''}`
-            if (!seen.has(key) || new Date(ds.created_at) > new Date(seen.get(key).created_at)) {
-              seen.set(key, ds)
-            }
-          }
-          setAllDatasets(Array.from(seen.values()))
-        } catch (_) {}
       } catch (err) {
         setError(err.response?.data?.detail || 'Error al cargar datos')
       } finally {

@@ -3,14 +3,30 @@ import duckdb
 import json
 import time
 import requests
-from typing import Dict, List, Any
+import tempfile
+import io
+from typing import Dict, List, Any, Union
 import numpy as np
 
+MAX_ANALYSIS_ROWS = 50000
+
 class AnalysisEngine:
-    """Motor para análisis automático de datos"""
+    """Motor para análisis automático de datos con muestreo para datasets grandes"""
     
-    def __init__(self, csv_path: str):
-        self.df = pd.read_csv(csv_path)
+    def __init__(self, csv_source: Union[str, io.BytesIO], total_rows: int = None):
+        if isinstance(csv_source, io.BytesIO):
+            df_full = pd.read_csv(csv_source)
+        else:
+            df_full = pd.read_csv(csv_source)
+        
+        total = len(df_full)
+        if total_rows and total_rows > MAX_ANALYSIS_ROWS and total > MAX_ANALYSIS_ROWS:
+            self.df = df_full.sample(n=MAX_ANALYSIS_ROWS, random_state=42)
+            self.sampled = True
+        else:
+            self.df = df_full
+            self.sampled = False
+        
         self.columns = self.df.columns.tolist()
     
     def get_statistics(self) -> Dict[str, Any]:
@@ -34,7 +50,6 @@ class AnalysisEngine:
                     'most_common': str(self.df[col].mode()[0]) if len(self.df[col].mode()) > 0 else None,
                 }
             
-            # Valores nulos en todas las columnas
             stats[col]['null_count'] = int(self.df[col].isna().sum())
             stats[col]['null_pct'] = float(self.df[col].isna().sum() / len(self.df) * 100)
         
@@ -49,7 +64,6 @@ class AnalysisEngine:
         
         corr_matrix = numeric_df.corr()
         
-        # Convertir a dict anidado
         corr_dict = {}
         for col1 in corr_matrix.columns:
             corr_dict[col1] = {}
@@ -77,7 +91,6 @@ class AnalysisEngine:
         """Detecta anomalías básicas"""
         anomalies = []
         
-        # Columnas con muchos nulos
         for col in self.columns:
             null_pct = self.df[col].isna().sum() / len(self.df) * 100
             if null_pct > 50:
@@ -88,7 +101,6 @@ class AnalysisEngine:
                     'message': f'Columna "{col}" tiene {null_pct:.1f}% de valores nulos'
                 })
         
-        # Columnas con baja cardinalidad
         for col in self.columns:
             unique_pct = self.df[col].nunique() / len(self.df) * 100
             if unique_pct < 1:
@@ -114,34 +126,33 @@ class AnalysisEngine:
 class SQLEngine:
     """Motor para ejecutar SQL contra datasets con DuckDB"""
     
-    def __init__(self, csv_path: str):
-        self.csv_path = csv_path
+    def __init__(self, csv_source: Union[str, io.BytesIO]):
+        self.csv_source = csv_source
         self.con = duckdb.connect(':memory:')
     
     def execute(self, sql: str) -> Dict[str, Any]:
         """Ejecuta SQL y retorna resultados"""
         start_time = time.time()
+        temp_path = None
         
         try:
-            # Descargar CSV desde Supabase si es URL
-            if self.csv_path.startswith('http'):
-                response = requests.get(self.csv_path)
-                csv_content = response.text
-                import tempfile
+            if isinstance(self.csv_source, io.BytesIO):
+                with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as f:
+                    f.write(self.csv_source.getvalue())
+                    temp_path = f.name
+            elif isinstance(self.csv_source, str) and self.csv_source.startswith('http'):
+                response = requests.get(self.csv_source)
                 with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
-                    f.write(csv_content)
+                    f.write(response.text)
                     temp_path = f.name
             else:
-                temp_path = self.csv_path
+                temp_path = self.csv_source
             
-            # Cargar CSV en memoria
             self.con.execute(f"CREATE TABLE data AS SELECT * FROM read_csv_auto('{temp_path}')")
             
-            # Ejecutar query
             result = self.con.execute(sql).fetchall()
             columns = [desc[0] for desc in self.con.description]
             
-            # Convertir a dict
             data = []
             for row in result:
                 data.append(dict(zip(columns, row)))
@@ -167,4 +178,10 @@ class SQLEngine:
         
         finally:
             self.con.close()
+            if temp_path and isinstance(self.csv_source, (io.BytesIO, str)):
+                try:
+                    import os
+                    os.unlink(temp_path)
+                except Exception:
+                    pass
             

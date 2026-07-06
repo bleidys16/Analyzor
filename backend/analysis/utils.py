@@ -1,8 +1,8 @@
-import tempfile
+import io
 
 
-def get_csv_tempfile(dataset, raise_on_missing=False):
-    """Lee el CSV desde el storage de Django o desde csv_content en DB, y escribe a temporal"""
+def get_csv_buffer(dataset, raise_on_missing=False):
+    """Retorna el contenido del CSV como BytesIO (evita escribir a disco)."""
     content = None
     try:
         content = dataset.file.read()
@@ -30,10 +30,12 @@ def get_csv_tempfile(dataset, raise_on_missing=False):
             )
         return None
 
-    f = tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False)
-    f.write(content)
-    f.close()
-    return f.name
+    return io.BytesIO(content)
+
+
+def get_csv_tempfile(dataset, raise_on_missing=False):
+    """Wrapper que retorna el buffer directamente (sin tempfile)."""
+    return get_csv_buffer(dataset, raise_on_missing=raise_on_missing)
 
 
 def generate_analysis_summary(dataset, analysis):

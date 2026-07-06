@@ -14,7 +14,7 @@ class AIProvider:
         # Groq solo si hay API key
         groq_key = os.getenv('GROQ_API_KEY')
         self.groq_client = Groq(api_key=groq_key) if groq_key and self.env == 'production' else None
-        self.ollama_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
+        self.ollama_url = os.getenv('OLLAMA_URL') or 'http://localhost:11434'
 
     def _system_prompt(self):
         return """Eres Analyzor, un asistente de análisis de datos con personalidad amable y profesional.
@@ -84,7 +84,10 @@ REGLAS ESTRICTAS:
                 pass
 
         # Último recurso: Ollama
-        return self._generate_with_ollama(f"{system}\n\n{message}")
+        result = self._generate_with_ollama(f"{system}\n\n{message}")
+        if result:
+            return result
+        return "¡Hola! Soy Analyzor. No tengo un modelo de IA configurado para responder. Configura una API key de OpenRouter o Groq, o inicia Ollama localmente para usar el chat."
 
     def generate_sql(self, question: str, schema: str) -> str:
         """Convierte pregunta en lenguaje natural a SQL"""
@@ -141,7 +144,8 @@ SQL:"""
             except Exception:
                 pass
 
-        return self._generate_with_ollama(f"{system}\n\n{user_msg}")
+        result = self._generate_with_ollama(f"{system}\n\n{user_msg}")
+        return result
 
     def answer_question(self, question: str, context: str) -> str:
         """Responde una pregunta con contexto de datos (números reales)"""
@@ -236,6 +240,6 @@ Si el contexto tiene números, úsalos. Si no los tiene, di que no hay datos dis
             )
             if response.status_code == 200:
                 return response.json()['response'].strip()
-            return f"Error: Ollama respondió con {response.status_code}"
-        except Exception as e:
-            return f"Error al conectar con Ollama: {str(e)}"
+        except Exception:
+            pass
+        return None

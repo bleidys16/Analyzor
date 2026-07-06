@@ -8,11 +8,16 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
+import io
+
 from datasets.models import Dataset
 from .models import Analysis, Query
 from .serializers import AnalysisSerializer, QuerySerializer
 from .engines import AnalysisEngine, SQLEngine
-from .utils import generate_analysis_summary, get_csv_tempfile
+from .utils import generate_analysis_summary, get_csv_buffer
+
+
+MAX_DISTRIBUTION_ROWS = 20000
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -35,7 +40,7 @@ class AutoAnalyzeAPIView(APIView):
         try:
             dataset = get_object_or_404(Dataset, id=dataset_id, session_id=session_id)
 
-            engine = AnalysisEngine(get_csv_tempfile(dataset))
+            engine = AnalysisEngine(get_csv_buffer(dataset), total_rows=dataset.rows_count)
             analysis_data = engine.run_full_analysis()
 
             analysis, _created = Analysis.objects.update_or_create(
@@ -79,7 +84,7 @@ class QueryAPIView(APIView):
         try:
             dataset = get_object_or_404(Dataset, id=dataset_id, session_id=session_id)
 
-            engine = SQLEngine(get_csv_tempfile(dataset))
+            engine = SQLEngine(get_csv_buffer(dataset))
             result = engine.execute(sql)
 
             query = Query.objects.create(
@@ -121,7 +126,7 @@ class AnalysisDetailAPIView(APIView):
         try:
             analysis = Analysis.objects.get(dataset=dataset)
         except Analysis.DoesNotExist:
-            engine = AnalysisEngine(get_csv_tempfile(dataset))
+            engine = AnalysisEngine(get_csv_buffer(dataset), total_rows=dataset.rows_count)
             analysis_data = engine.run_full_analysis()
             analysis = Analysis.objects.create(
                 dataset=dataset,
@@ -154,8 +159,15 @@ class ColumnDistributionsAPIView(APIView):
 
         try:
             dataset = get_object_or_404(Dataset, id=dataset_id, session_id=session_id)
-            df = pd.read_csv(get_csv_tempfile(dataset))
-            total_rows = len(df)
+            buf = get_csv_buffer(dataset)
+            df_full = pd.read_csv(buf)
+            total_rows = len(df_full)
+
+            # Muestrear si el dataset es grande para distribuciones
+            if total_rows > MAX_DISTRIBUTION_ROWS:
+                df = df_full.sample(n=MAX_DISTRIBUTION_ROWS, random_state=42)
+            else:
+                df = df_full
 
             numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
             categorical_cols = [c for c in df.columns if not pd.api.types.is_numeric_dtype(df[c])]
@@ -315,7 +327,7 @@ class AnalysisSummaryAPIView(APIView):
         try:
             analysis = Analysis.objects.get(dataset=dataset)
         except Analysis.DoesNotExist:
-            engine = AnalysisEngine(get_csv_tempfile(dataset))
+            engine = AnalysisEngine(get_csv_buffer(dataset), total_rows=dataset.rows_count)
             analysis_data = engine.run_full_analysis()
             analysis = Analysis.objects.create(
                 dataset=dataset,

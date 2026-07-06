@@ -23,22 +23,17 @@ def validate_csv(file):
         return False, str(e)
 
 def process_csv(file):
-    """Procesa CSV y extrae información (sin cargar el CSV completo)."""
-    # Límites para que el upload responda rápido en Vercel
+    """Procesa CSV con una sola lectura y estimación de filas por tamaño."""
+    SAMPLE_NROWS = 2000
     PREVIEW_NROWS = 100
-    DTYPE_SAMPLE_NROWS = 1000
 
     try:
-        # Asegura que el stream está al inicio
         file.seek(0)
 
-        # 1) Preview (solo primeras filas)
-        preview_df = pd.read_csv(file, nrows=PREVIEW_NROWS)
-        columns = preview_df.columns.tolist()
-
-        # 2) Muestra para inferir dtypes
-        file.seek(0)
-        sample_df = pd.read_csv(file, nrows=DTYPE_SAMPLE_NROWS)
+        # Una sola lectura para obtener todo: columnas, dtypes, preview
+        sample_df = pd.read_csv(file, nrows=SAMPLE_NROWS)
+        columns = sample_df.columns.tolist()
+        actual_rows_read = len(sample_df)
 
         dtypes = {}
         for col in columns:
@@ -52,20 +47,16 @@ def process_csv(file):
             else:
                 dtypes[col] = 'string'
 
-        # 3) rows_count: para evitar cargar todo, usamos aproximación razonable
-        #    (si más adelante necesitas el conteo exacto, hazlo en background.)
-        #    Aquí estimamos contando líneas del stream.
-        file.seek(0)
-        # Intento de conteo eficiente por bytes; funciona bien para CSV normales.
-        # Resta el header (1 línea) si existe.
-        lines = 0
-        for _ in file:
-            lines += 1
-        rows_count = max(0, lines - 1)
+        preview_data = _sanitize(sample_df.head(PREVIEW_NROWS).to_dict(orient='records'))
 
         file_size = file.size
 
-        preview_data = _sanitize(preview_df.to_dict(orient='records'))
+        # Estimar filas totales por tamaño (evita iterar todo el archivo)
+        bytes_read = file.tell() if hasattr(file, 'tell') and file.tell() > 0 else file_size
+        if actual_rows_read < SAMPLE_NROWS:
+            rows_count = actual_rows_read
+        else:
+            rows_count = max(0, int(file_size * actual_rows_read / bytes_read) - 1)
 
         return {
             'columns': columns,
