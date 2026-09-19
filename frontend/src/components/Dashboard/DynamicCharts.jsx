@@ -10,7 +10,6 @@ function DatasetSummary({ dataset, analysis }) {
   const columns = dataset?.columns || []
   const dtypes = dataset?.dtypes || {}
   const analysisData = analysis || dataset?.analysis || {}
-  const preview = dataset?.preview || []
 
   const isNumericType = (col) => {
     const dtype = dtypes?.[col] || analysisData?.data_quality?.[col]?.dtype || ''
@@ -59,7 +58,6 @@ function DatasetSummary({ dataset, analysis }) {
             <tbody>
               {columns.map(col => {
                 const dq = analysisData?.data_quality?.[col] || {}
-                const stats = analysisData?.statistics?.[col] || {}
                 const isNum = numericCols.includes(col)
                 return (
                   <tr key={col} style={{ borderBottom: '1px solid var(--card-border)' }}>

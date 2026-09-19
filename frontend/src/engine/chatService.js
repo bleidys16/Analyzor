@@ -1,6 +1,6 @@
 import { detectChartType } from './chartGenerator'
 import { generateFallbackAnswer, generateFallbackSql } from './fallbackSql'
-import { defaultLlm } from './llm'
+import { LlmLimitError, defaultLlm } from './llm'
 import { runOnDataset } from './session'
 import { runSelect } from './select'
 import { cleanLlmSql } from './sqlGuard'
@@ -14,8 +14,20 @@ const guidance = (columns) =>
   'No pude interpretar la pregunta. Prueba con algo como «promedio de ' +
   `${columns[0] ?? 'columna'}», «cuántos por ${columns[1] ?? columns[0] ?? 'columna'}» o «muestra los datos».`
 
+// Si la IA alcanza su límite de uso se sigue respondiendo con reglas, y se avisa al usuario
+const limitNotice = (limit) =>
+  limit.daily
+    ? 'ℹ️ Alcanzaste el límite diario de preguntas con IA; respondí con el motor de reglas básico. Vuelve mañana para usar la IA.'
+    : 'ℹ️ Estás preguntando muy rápido; respondí con el motor de reglas básico. Espera un momento para volver a usar la IA.'
+
+// Anota por qué la IA no se pudo usar en esta pregunta (ctx vive solo durante un sendMessage)
+function noteLlmError(err, ctx, what) {
+  if (err instanceof LlmLimitError) ctx.limit = err
+  else console.warn(`La IA no pudo ${what}:`, err.message)
+}
+
 // Intenta SQL de la IA; si falla o no hay IA, las reglas locales. Devuelve el primer intento que ejecuta bien.
-async function findQuery(runner, meta, question, llm) {
+async function findQuery(runner, meta, question, llm, ctx) {
   const { columns, dtypes } = meta
   if (llm.enabled) {
     try {
@@ -25,7 +37,7 @@ async function findQuery(runner, meta, question, llm) {
         if (!result.error) return { sql, result, viaRules: false }
       }
     } catch (err) {
-      console.warn('La IA no pudo generar SQL, uso reglas locales:', err.message)
+      noteLlmError(err, ctx, 'generar SQL')
     }
   }
 
@@ -35,7 +47,7 @@ async function findQuery(runner, meta, question, llm) {
   return result.error ? { error: result.error } : { sql, result, viaRules: true }
 }
 
-async function explain(meta, question, found, llm) {
+async function explain(meta, question, found, llm, ctx) {
   const { sql, result, viaRules } = found
   if (!viaRules) {
     try {
@@ -49,14 +61,14 @@ async function explain(meta, question, found, llm) {
       })
       if (answer) return answer
     } catch (err) {
-      console.warn('La IA no pudo redactar la respuesta:', err.message)
+      noteLlmError(err, ctx, 'redactar la respuesta')
     }
   }
   return generateFallbackAnswer(question, result, sql)
 }
 
-async function generalChat(meta, question, llm) {
-  if (llm.enabled) {
+async function generalChat(meta, question, llm, ctx) {
+  if (llm.enabled && !ctx.limit) {
     try {
       const answer = await llm.chat({
         question,
@@ -67,7 +79,7 @@ async function generalChat(meta, question, llm) {
       })
       if (answer) return answer
     } catch (err) {
-      console.warn('La IA no respondió:', err.message)
+      noteLlmError(err, ctx, 'responder')
     }
   }
   return guidance(meta.columns)
@@ -81,14 +93,15 @@ export async function sendMessage(datasetId, content, { llm = defaultLlm } = {})
 
   await datasetStore.addMessage({ dataset_id: datasetId, role: 'user', content: question, created_at: new Date().toISOString() })
 
+  const ctx = { limit: null }
   let reply
   try {
     reply = await runOnDataset(datasetId, async (runner) => {
-      const found = await findQuery(runner, meta, question, llm)
+      const found = await findQuery(runner, meta, question, llm, ctx)
       if (found?.result) {
         const { result, sql } = found
         return {
-          content: await explain(meta, question, found, llm),
+          content: await explain(meta, question, found, llm, ctx),
           sql_generated: sql,
           query_result: {
             data: result.data.slice(0, STORED_ROWS),
@@ -98,11 +111,13 @@ export async function sendMessage(datasetId, content, { llm = defaultLlm } = {})
         }
       }
       if (found?.error) return { content: `No pude ejecutar la consulta: ${found.error}`, sql_generated: null, query_result: null }
-      return { content: await generalChat(meta, question, llm), sql_generated: null, query_result: null }
+      return { content: await generalChat(meta, question, llm, ctx), sql_generated: null, query_result: null }
     })
   } catch (err) {
     reply = { content: `Error al analizar: ${err.message}`, sql_generated: null, query_result: null }
   }
+
+  if (ctx.limit) reply.content = `${reply.content}\n\n${limitNotice(ctx.limit)}`
 
   return datasetStore.addMessage({
     dataset_id: datasetId,

@@ -66,7 +66,7 @@ function ChartRenderer({ chartConfig }) {
                 paddingAngle={2}
                 dataKey="value"
                 nameKey="name"
-                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
               >
                 {chartConfig.data.map((_, i) => (
                   <Cell key={i} fill={pieColors[i % pieColors.length]} />
@@ -168,7 +168,7 @@ const SUGGESTIONS = [
   'Gráfico de torta por género',
 ]
 
-export default function ChatMessages({ messages = [], sending = false, onSend }) {
+export default function ChatMessages({ messages = [], sending = false, onSend, suggestions = SUGGESTIONS }) {
   const validMessages = (messages || []).filter(msg => msg && msg.role)
   const ref = useRef(null)
 
@@ -218,7 +218,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend })
           justifyContent: 'center',
           maxWidth: '400px',
         }}>
-          {SUGGESTIONS.map((suggestion, i) => (
+          {suggestions.map((suggestion, i) => (
             <button
               key={i}
               onClick={() => onSend?.(suggestion)}

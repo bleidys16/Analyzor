@@ -5,7 +5,7 @@ import {
 
 const COLORS = ['#3b82f6', '#60a5fa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
-function CustomTooltip({ active, payload, label }) {
+function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
   return (
@@ -44,7 +44,6 @@ function BarView({ data }) {
 }
 
 function PieView({ data }) {
-  const total = data.reduce((s, d) => s + d.count, 0)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
       <ResponsiveContainer width="60%" height={200}>

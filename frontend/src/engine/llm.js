@@ -4,6 +4,14 @@ const TIMEOUT_MS = 25000
 const SAMPLE_ROWS = 5
 const MAX_COLUMNS = 60
 
+// El Worker responde 429 al superar el tope diario (daily = true) o al preguntar demasiado rápido
+export class LlmLimitError extends Error {
+  constructor(message, { daily = false } = {}) {
+    super(message)
+    this.daily = daily
+  }
+}
+
 export function createLlmClient({ baseUrl = import.meta.env?.VITE_LLM_URL || '', fetchImpl } = {}) {
   const base = String(baseUrl).replace(/\/+$/, '')
 
@@ -17,6 +25,10 @@ export function createLlmClient({ baseUrl = import.meta.env?.VITE_LLM_URL || '',
         body: JSON.stringify(body),
         signal: controller.signal,
       })
+      if (res.status === 429) {
+        const detail = await res.json().catch(() => ({}))
+        throw new LlmLimitError(detail.error || 'Límite de uso de la IA alcanzado', { daily: Boolean(detail.scope) })
+      }
       if (!res.ok) throw new Error(`El servicio de IA respondió ${res.status}`)
       return await res.json()
     } finally {

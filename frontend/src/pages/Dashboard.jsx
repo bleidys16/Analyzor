@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import { analysisAPI } from '../api/analysis'
@@ -9,6 +9,8 @@ import ChatMessages from '../components/Chat/ChatMessages'
 import ChatInput from '../components/Chat/ChatInput'
 import DynamicCharts from '../components/Dashboard/DynamicCharts'
 import TopographicBackground from '../components/TopographicBackground'
+import { buildSuggestions } from '../engine/suggestions'
+import { latestPerDay } from '../utils/datasets'
 
 export default function Dashboard() {
   const { datasetId } = useParams()
@@ -23,36 +25,32 @@ export default function Dashboard() {
   const [messages, setMessages] = useState([])
   const [sending, setSending] = useState(false)
   const [activeTab, setActiveTab] = useState('analysis')
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  // El tema guardado se lee al crear el estado; el observador solo reacciona a cambios posteriores
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('theme') === 'dark'
+    } catch {
+      return false
+    }
+  })
   const [allDatasets, setAllDatasets] = useState([])
   const [showDatasetList, setShowDatasetList] = useState(false)
-  const [loadingDatasets, setLoadingDatasets] = useState(false)
 
-  // Cargar lista de datasets solo cuando se abre el modal
-  useEffect(() => {
-    if (!showDatasetList || allDatasets.length > 0) return
-    const loadAll = async () => {
-      setLoadingDatasets(true)
-      try {
-        const allRes = await datasetsAPI.getAll()
-        const all = allRes.data || []
-        const seen = new Map()
-        for (const ds of all) {
-          const key = `${ds.name}_${ds.created_at?.slice(0, 10) || ''}`
-          if (!seen.has(key) || new Date(ds.created_at) > new Date(seen.get(key).created_at)) {
-            seen.set(key, ds)
-          }
-        }
-        setAllDatasets(Array.from(seen.values()))
-      } catch (_) {}
-      setLoadingDatasets(false)
+  const suggestions = useMemo(() => buildSuggestions(dataset, analysis), [dataset, analysis])
+
+  // La lista de datasets se carga al abrir el modal (y solo la primera vez)
+  const openDatasetList = async () => {
+    setShowDatasetList(true)
+    if (allDatasets.length > 0) return
+    try {
+      const response = await datasetsAPI.getAll()
+      setAllDatasets(latestPerDay(response.data))
+    } catch (err) {
+      console.warn('No se pudo cargar la lista de datasets:', err)
     }
-    loadAll()
-  }, [showDatasetList])
+  }
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme')
-    setIsDarkMode(savedTheme === 'dark')
     const observer = new MutationObserver(() => {
       setIsDarkMode(document.documentElement.getAttribute('data-theme') === 'dark')
     })
@@ -60,53 +58,51 @@ export default function Dashboard() {
     return () => observer.disconnect()
   }, [])
 
+  // Carga el dataset, su análisis y el historial del chat. Cada dataset tiene su propia instancia
+  // de esta página (ver DashboardRoute en App.jsx), así que no hace falta limpiar estados previos.
   useEffect(() => {
-    const fetchData = async () => {
+    if (!datasetId) return
+    let cancelled = false
+
+    const load = async () => {
       try {
         const datasetResponse = await datasetsAPI.getById(datasetId)
+        if (cancelled) return
         setDataset(datasetResponse.data)
         setCurrentDataset(datasetResponse.data)
-        
+
         try {
           const analysisResponse = await analysisAPI.getAnalysis(datasetId)
-          setAnalysis(analysisResponse.data)
-        } catch (err) {
-          await runAutoAnalysis(datasetId)
+          if (!cancelled) setAnalysis(analysisResponse.data)
+        } catch {
+          // Si el análisis guardado falla, se recalcula desde el archivo
+          if (!cancelled) setAnalyzing(true)
+          try {
+            const analysisResponse = await analysisAPI.autoAnalyze(datasetId)
+            if (!cancelled) setAnalysis(analysisResponse.data)
+          } catch (err) {
+            console.error('Error en análisis:', err)
+          } finally {
+            if (!cancelled) setAnalyzing(false)
+          }
         }
-        
-        await loadChatHistory()
+
+        try {
+          const history = await chatAPI.getHistory(datasetId)
+          if (!cancelled) setMessages(Array.isArray(history.data) ? history.data : [])
+        } catch (err) {
+          console.error('Error cargando chat:', err)
+        }
       } catch (err) {
-        setError(err.response?.data?.error || 'Error al cargar datos')
+        if (!cancelled) setError(err.response?.data?.error || 'Error al cargar datos')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
-    if (datasetId) {
-      fetchData()
-    }
+    load()
+    return () => { cancelled = true }
   }, [datasetId, setCurrentDataset])
-
-  const runAutoAnalysis = async (id) => {
-    setAnalyzing(true)
-    try {
-      const response = await analysisAPI.autoAnalyze(id)
-      setAnalysis(response.data)
-    } catch (err) {
-      console.error('Error en análisis:', err)
-    } finally {
-      setAnalyzing(false)
-    }
-  }
-
-  const loadChatHistory = async () => {
-    try {
-      const response = await chatAPI.getHistory(datasetId)
-      setMessages(Array.isArray(response.data) ? response.data : [])
-    } catch (err) {
-      console.error('Error cargando chat:', err)
-    }
-  }
 
   const handleExportPDF = async () => {
     try {
@@ -443,7 +439,7 @@ export default function Dashboard() {
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
-                onClick={() => setShowDatasetList(true)}
+                onClick={openDatasetList}
                 className="btn-ghost"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -520,7 +516,7 @@ export default function Dashboard() {
               flexDirection: 'column',
               height: '550px',
             }}>
-              <ChatMessages messages={messages} sending={sending} onSend={handleSendMessage} />
+              <ChatMessages messages={messages} sending={sending} onSend={handleSendMessage} suggestions={suggestions} />
               <ChatInput 
                 onSend={handleSendMessage} 
                 sending={sending}

@@ -50,7 +50,7 @@ export default function CorrelationHeatmap({ correlations }) {
           </tr>
         </thead>
         <tbody>
-          {columns.map((rowCol, i) => (
+          {columns.map((rowCol) => (
             <tr key={rowCol}>
               <td style={{
                 padding: '8px',

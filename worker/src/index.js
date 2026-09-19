@@ -3,6 +3,9 @@
 //   POST /api/answer  { question, columns, dtypes, sql?, rows?, rows_count? } -> { answer }
 //   GET  /health
 import { answerMessages, sqlMessages } from './prompts.js'
+import { consumeQuota } from './usage.js'
+
+export { UsageCounter } from './usage.js'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 // llama-3.3-70b-versatile fue retirado por Groq el 16/08/2026; ver https://console.groq.com/docs/deprecations
@@ -149,13 +152,29 @@ async function callGroq(env, fetchImpl, messages, { maxTokens, temperature }) {
 
 // --- Rutas ----------------------------------------------------------------
 
+// Descuenta una llamada de la cuota diaria. Se hace DESPUÉS de validar, para que peticiones
+// inválidas no gasten la cuota de nadie.
+async function charge(env, ip) {
+  const quota = await consumeQuota(env, ip)
+  if (quota.allowed) return
+  if (quota.scope === 'unavailable') {
+    throw new HttpError(503, 'La IA no está disponible en este momento', { retry_after: quota.retryAfter })
+  }
+  const message = quota.scope === 'global'
+    ? 'La IA alcanzó su límite diario de uso. Vuelve mañana.'
+    : 'Alcanzaste tu límite diario de preguntas con IA. Vuelve mañana.'
+  throw new HttpError(429, message, { scope: quota.scope, retry_after: quota.retryAfter })
+}
+
 const ROUTES = {
-  '/api/sql': async (body, env, fetchImpl) => {
+  '/api/sql': async (body, env, fetchImpl, { ip }) => {
     const b = validate(body, { needsSample: true })
+    await charge(env, ip)
     return { sql: await callGroq(env, fetchImpl, sqlMessages(b), { maxTokens: 1500, temperature: 0.1 }) }
   },
-  '/api/answer': async (body, env, fetchImpl) => {
+  '/api/answer': async (body, env, fetchImpl, { ip }) => {
     const b = validate(body, { needsSample: false })
+    await charge(env, ip)
     return { answer: await callGroq(env, fetchImpl, answerMessages(b), { maxTokens: 1500, temperature: 0.4 }) }
   },
 }
@@ -177,10 +196,14 @@ export async function handle(request, env, fetchImpl = fetch) {
 
   try {
     if (await rateLimited(request, env)) return json(429, { error: 'Demasiadas solicitudes, espera un momento' }, cors)
-    const result = await route(await readJson(request), env, fetchImpl)
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown'
+    const result = await route(await readJson(request), env, fetchImpl, { ip })
     return json(200, result, cors)
   } catch (err) {
-    if (err instanceof HttpError) return json(err.status, { error: err.message, ...err.extra }, cors)
+    if (err instanceof HttpError) {
+      const retry = err.extra.retry_after ? { 'Retry-After': String(err.extra.retry_after) } : {}
+      return json(err.status, { error: err.message, ...err.extra }, { ...cors, ...retry })
+    }
     console.error('Error inesperado:', err)
     return json(500, { error: 'Error interno' }, cors)
   }

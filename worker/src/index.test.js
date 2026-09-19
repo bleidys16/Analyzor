@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { handle, resetRateLimit } from './index.js'
+import { fakeNamespace } from './testing.js'
 
 const ORIGIN = 'http://localhost:5173'
 const ENV = { GROQ_API_KEY: 'gsk_test_secret', ALLOWED_ORIGINS: `${ORIGIN},https://*.analyzor.pages.dev` }
@@ -130,6 +131,59 @@ describe('validación y límites', () => {
     expect((await handle(post('/api/nada', {}), ENV)).status).toBe(404)
     const get = new Request('https://llm.test/api/sql', { headers: { Origin: ORIGIN } })
     expect((await handle(get, ENV)).status).toBe(405)
+  })
+})
+
+describe('cuota diaria de uso', () => {
+  const withQuota = (extra = {}) => ({ ...ENV, USAGE: fakeNamespace(), DAILY_LIMIT_PER_IP: '2', DAILY_LIMIT_GLOBAL: '100', ...extra })
+  const ip = (address) => ({ 'CF-Connecting-IP': address })
+
+  it('tras el tope diario por IP responde 429 con Retry-After y NO llama a Groq', async () => {
+    const env = withQuota()
+    const fetchImpl = groqOk('SELECT 1')
+    expect((await handle(post('/api/sql', SQL_BODY, ip('9.9.9.9')), env, fetchImpl)).status).toBe(200)
+    expect((await handle(post('/api/sql', SQL_BODY, ip('9.9.9.9')), env, fetchImpl)).status).toBe(200)
+
+    const blocked = await handle(post('/api/sql', SQL_BODY, ip('9.9.9.9')), env, fetchImpl)
+    expect(blocked.status).toBe(429)
+    expect(Number(blocked.headers.get('Retry-After'))).toBeGreaterThan(0)
+    expect(await blocked.json()).toMatchObject({ scope: 'ip', error: expect.stringContaining('límite diario') })
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
+
+  it('el tope se comparte entre /api/sql y /api/answer, y no afecta a otras IPs', async () => {
+    const env = withQuota()
+    const answer = { question: 'q', columns: ['a'], rows_count: 1 }
+    await handle(post('/api/sql', SQL_BODY, ip('1.1.1.1')), env, groqOk('SELECT 1'))
+    await handle(post('/api/answer', answer, ip('1.1.1.1')), env, groqOk('hola'))
+    expect((await handle(post('/api/answer', answer, ip('1.1.1.1')), env, groqOk('hola'))).status).toBe(429)
+    expect((await handle(post('/api/answer', answer, ip('2.2.2.2')), env, groqOk('hola'))).status).toBe(200)
+  })
+
+  it('el tope global responde 429 con scope "global"', async () => {
+    const env = withQuota({ DAILY_LIMIT_PER_IP: '50', DAILY_LIMIT_GLOBAL: '1' })
+    await handle(post('/api/sql', SQL_BODY, ip('1.1.1.1')), env, groqOk('SELECT 1'))
+    const res = await handle(post('/api/sql', SQL_BODY, ip('2.2.2.2')), env, groqOk('SELECT 1'))
+    expect(res.status).toBe(429)
+    expect((await res.json()).scope).toBe('global')
+  })
+
+  it('las peticiones inválidas no gastan cuota', async () => {
+    const env = withQuota()
+    for (let i = 0; i < 5; i++) {
+      expect((await handle(post('/api/sql', { question: '' }, ip('3.3.3.3')), env, groqOk('x'))).status).toBe(400)
+    }
+    expect((await handle(post('/api/sql', SQL_BODY, ip('3.3.3.3')), env, groqOk('SELECT 1'))).status).toBe(200)
+  })
+
+  it('si el contador falla responde 503 (no arriesga la cuota de Groq)', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const broken = { idFromName: (n) => n, get: () => ({ fetch: async () => { throw new Error('caído') } }) }
+    const fetchImpl = groqOk('SELECT 1')
+    const res = await handle(post('/api/sql', SQL_BODY), { ...ENV, USAGE: broken }, fetchImpl)
+    expect(res.status).toBe(503)
+    expect(fetchImpl).not.toHaveBeenCalled()
+    errors.mockRestore()
   })
 })
 

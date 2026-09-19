@@ -10,11 +10,17 @@ ALLOWED_ORIGINS = "http://localhost:5173,https://analyzor.vercel.app"
 # Groq retiró llama-3.3-70b-versatile el 16/08/2026. Revisa https://console.groq.com/docs/deprecations
 GROQ_MODEL = "openai/gpt-oss-120b"
 
+# Cuotas diarias de llamadas de IA (cada pregunta del chat usa 1 o 2 llamadas). Se reinician a las 00:00 UTC.
+DAILY_LIMIT_PER_IP = "60"    # por usuario (dirección IP)
+DAILY_LIMIT_GLOBAL = "1500"  # de todo el servicio: protege la cuota gratuita de Groq
+
 # La clave NO va aquí: wrangler secret put GROQ_API_KEY
 
-# Rate limiting nativo (opcional). Sin él se usa un límite en memoria por instancia.
-# Consulta la documentación vigente de Cloudflare "Rate Limiting binding" antes de activarlo.
-# [[ratelimits]]
-# name = "RATE_LIMITER"
-# namespace_id = "1001"
-# simple = { limit = 20, period = 60 }
+# Contadores de uso: un Durable Object con almacenamiento SQLite (el único tipo del plan gratuito)
+[[durable_objects.bindings]]
+name = "USAGE"
+class_name = "UsageCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UsageCounter"]

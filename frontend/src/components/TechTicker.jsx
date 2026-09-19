@@ -8,7 +8,7 @@ const techStack = [
   { name: 'JSPDF', desc: 'Reportes PDF generados al instante' },
 ]
 
-export default function TechTicker({ isDark }) {
+export default function TechTicker() {
   return (
     <>
       <style>{`

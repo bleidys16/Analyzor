@@ -1,9 +1,9 @@
 import 'fake-indexeddb/auto'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { getAnalysis, getDataset, deleteDataset, listDatasets, uploadDataset, NotFoundError, UploadError } from '../datasetService'
 import { clearHistory, getHistory, sendMessage } from '../chatService'
 import { exportPdf } from '../exportService'
-import { createLlmClient } from '../llm'
+import { LlmLimitError, createLlmClient } from '../llm'
 import { setRunnerFactory, MissingFileError, forget, runOnDataset } from '../session'
 import { datasetStore } from '../store'
 import { createNodeRunner } from './nodeRunner'
@@ -149,6 +149,25 @@ describe('chat', () => {
   it('un dataset inexistente da NotFoundError', async () => {
     await expect(sendMessage('nope', 'hola', { llm: NO_LLM })).rejects.toBeInstanceOf(NotFoundError)
   })
+
+  it('si la IA alcanzó su límite diario responde con reglas y lo avisa', async () => {
+    const ds = await uploadDataset(csvFile('chat9.csv', VENTAS))
+    const llm = fakeLlm({ generateSql: async () => { throw new LlmLimitError('tope', { daily: true }) } })
+    const reply = await sendMessage(ds.id, 'promedio de ventas', { llm })
+    expect(reply.content).toContain('20') // sigue respondiendo la pregunta
+    expect(reply.content).toContain('límite diario')
+    expect(reply.sql_generated).toContain('AVG("ventas")')
+  })
+
+  it('si pregunta muy rápido (sin tope diario) el aviso es distinto y no vuelve a llamar a la IA', async () => {
+    const ds = await uploadDataset(csvFile('chat10.csv', VENTAS))
+    const chat = vi.fn(async () => 'no debería llamarse')
+    const llm = fakeLlm({ generateSql: async () => { throw new LlmLimitError('rápido') }, chat })
+    const reply = await sendMessage(ds.id, 'háblame del significado de esta información', { llm })
+    expect(reply.content).toContain('muy rápido')
+    expect(reply.content).toMatch(/No pude interpretar/)
+    expect(chat).not.toHaveBeenCalled()
+  })
 })
 
 describe('cliente del proxy de IA', () => {
@@ -165,6 +184,16 @@ describe('cliente del proxy de IA', () => {
     expect(await client.generateSql({ question: 'q', columns: ['n'], dtypes: { n: 'integer' }, sample })).toBe('SELECT 1')
     expect(calls[0].url).toBe('https://llm.example/api/sql')
     expect(calls[0].body.sample).toHaveLength(5)
+  })
+
+  it('un 429 del Worker es un LlmLimitError (diario si trae scope)', async () => {
+    const respond = (body) => async () => ({ ok: false, status: 429, json: async () => body })
+    const daily = createLlmClient({ baseUrl: 'https://x', fetchImpl: respond({ error: 'tope', scope: 'ip' }) })
+    const burst = createLlmClient({ baseUrl: 'https://x', fetchImpl: respond({ error: 'rápido' }) })
+    const args = { question: 'q', columns: ['a'], dtypes: {} }
+    await expect(daily.generateSql(args)).rejects.toMatchObject({ name: 'Error', daily: true, message: 'tope' })
+    await expect(burst.generateSql(args)).rejects.toBeInstanceOf(LlmLimitError)
+    await expect(burst.generateSql(args)).rejects.toMatchObject({ daily: false })
   })
 
   it('sin URL queda desactivado; un 500 lanza error', async () => {
