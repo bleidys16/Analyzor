@@ -9,7 +9,7 @@ const statsDistribution = [
 
 const barColors = ['#ef4444', '#f43f5e', '#fb7185', '#fda4af']
 
-export default function StatsChart({ isDark }) {
+export default function StatsChart() {
   return (
     <div className="feature-card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '25px 25px 0 25px' }}>

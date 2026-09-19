@@ -4,6 +4,7 @@ import { datasetsAPI } from '../api/datasets'
 import TopographicBackground from '../components/TopographicBackground'
 import TechTicker from '../components/TechTicker'
 import StatsChart from '../components/StatsChart'
+import { latestPerDay } from '../utils/datasets'
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -14,38 +15,27 @@ export default function Landing() {
   const [datasets, setDatasets] = useState([])
   const [datasetsLoading, setDatasetsLoading] = useState(true)
 
-  // Theme state (Light is default)
-  const [isDarkMode, setIsDarkMode] = useState(false)
-
-  useEffect(() => {
-    // Restore persisted theme
-    const savedTheme = localStorage.getItem('theme')
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadDatasets()
-  }, [])
-
-  const loadDatasets = async () => {
+  // Theme state (Light is default); se restaura el tema guardado al crear el estado
+  const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
-      const response = await datasetsAPI.getAll()
-      const all = response.data || []
-      const seen = new Map()
-      for (const ds of all) {
-        const key = `${ds.name}_${ds.created_at?.slice(0, 10) || ''}`
-        if (!seen.has(key) || new Date(ds.created_at) > new Date(seen.get(key).created_at)) {
-          seen.set(key, ds)
-        }
-      }
-      setDatasets(Array.from(seen.values()))
-    } catch (_) {
-    } finally {
-      setDatasetsLoading(false)
+      return localStorage.getItem('theme') === 'dark'
+    } catch {
+      return false
     }
-  }
+  })
+
+  useEffect(() => {
+    let cancelled = false
+    datasetsAPI.getAll()
+      .then((response) => {
+        if (!cancelled) setDatasets(latestPerDay(response.data))
+      })
+      .catch((err) => console.warn('No se pudo cargar la lista de datasets:', err))
+      .finally(() => {
+        if (!cancelled) setDatasetsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light')
@@ -109,6 +99,19 @@ export default function Landing() {
     }
   }
 
+  const handleSample = async () => {
+    setUploading(true)
+    setError(null)
+
+    try {
+      const response = await datasetsAPI.loadSample()
+      navigate(`/dashboard/${response.data.id}`)
+    } catch (err) {
+      setError(err.response?.data?.error || 'No se pudo cargar el dataset de ejemplo')
+      setUploading(false)
+    }
+  }
+
   const triggerFileInput = () => {
     document.getElementById('fileInput').click()
   }
@@ -119,12 +122,6 @@ export default function Landing() {
       el.scrollIntoView({ behavior: 'smooth' })
     }
   }
-
-  // Chart Colors based on Theme
-  const accentHex = '#ef4444' // Vibrant Red
-  const chartBg = isDarkMode ? '#0d121f' : '#ffffff'
-  const tooltipBorder = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
-
 
   return (
     <div style={{
@@ -335,9 +332,12 @@ export default function Landing() {
               Consultas SQL, perfilado automático y análisis estadístico avanzado impulsado por IA.
             </p>
 
-            <div style={{ display: 'flex', gap: 'clamp(10px, 2vw, 15px)', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
-              <button className="btn-primary" onClick={scrollToUploadZone}>
-                Cargar un CSV Gratis
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(10px, 2vw, 15px)', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
+              <button className="btn-primary" onClick={handleSample} disabled={uploading}>
+                {uploading && !file ? 'Preparando ejemplo...' : 'Probar con datos de ejemplo'}
+              </button>
+              <button className="btn-secondary" onClick={scrollToUploadZone}>
+                Cargar mi propio CSV
               </button>
               <button className="btn-secondary" onClick={() => {
                 const el = document.getElementById('features')
@@ -350,7 +350,7 @@ export default function Landing() {
         </div>
 
         {/* Tech Ticker */}
-        <TechTicker isDark={isDarkMode} />
+        <TechTicker />
 
         {/* Features Section */}
       <section id="features" style={{
@@ -467,6 +467,19 @@ export default function Landing() {
               </div>
             )}
 
+            {!file && (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '14px', textAlign: 'center' }}>
+                ¿No tienes un CSV a la mano?{' '}
+                <button
+                  onClick={handleSample}
+                  disabled={uploading}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, fontSize: '12px', padding: 0, textDecoration: 'underline' }}
+                >
+                  Prueba con datos de ejemplo
+                </button>
+              </p>
+            )}
+
             {error && (
               <p style={{ color: 'var(--accent)', fontSize: '12px', marginTop: '12px', textAlign: 'center' }}>{error}</p>
             )}
@@ -502,7 +515,7 @@ export default function Landing() {
         </div>
 
         <div className="grid-3">
-          <StatsChart isDark={isDarkMode} />
+          <StatsChart />
 
           {/* CARD 2: Editor SQL Integrado */}
           <div className="feature-card" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>

@@ -1,9 +1,15 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import NotFound from './pages/NotFound'
 import { STORAGE_KEYS, THEMES } from './utils/constants'
+
+// Con `key`, cambiar de dataset monta un Dashboard nuevo y no arrastra el chat ni el análisis del anterior
+function DashboardRoute() {
+  const { datasetId } = useParams()
+  return <Dashboard key={datasetId} />
+}
 
 function AppContent() {
   useEffect(() => {
@@ -15,7 +21,7 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/dashboard/:datasetId" element={<Dashboard />} />
+      <Route path="/dashboard/:datasetId" element={<DashboardRoute />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )
