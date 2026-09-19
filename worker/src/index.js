@@ -13,9 +13,10 @@ const LIMITS = { question: 500, columns: 100, columnName: 100, rows: 5, sql: 200
 const LOCAL_RATE = { limit: 30, windowMs: 60_000 }
 
 class HttpError extends Error {
-  constructor(status, message) {
+  constructor(status, message, extra = {}) {
     super(message)
     this.status = status
+    this.extra = extra
   }
 }
 
@@ -125,8 +126,20 @@ async function callGroq(env, fetchImpl, messages, { maxTokens, temperature }) {
     throw new HttpError(504, 'El proveedor de IA tardó demasiado')
   }
   if (!res.ok) {
-    console.error('Groq devolvió', res.status, (await res.text()).slice(0, 300))
-    throw new HttpError(502, 'El proveedor de IA devolvió un error')
+    // Diagnóstico sin secretos: cuerpo, quién respondió y la "forma" de la clave (nunca su valor)
+    const key = String(env.GROQ_API_KEY)
+    console.error(
+      'Groq devolvió', res.status, (await res.text()).slice(0, 300),
+      JSON.stringify({
+        model,
+        contentType: res.headers.get('content-type'),
+        server: res.headers.get('server'),
+        cfRay: res.headers.get('cf-ray'),
+        keyLength: key.length,
+        keyLooksValid: /^gsk_[A-Za-z0-9]+$/.test(key),
+      })
+    )
+    throw new HttpError(502, 'El proveedor de IA devolvió un error', { upstream_status: res.status })
   }
   const data = await res.json()
   const content = String(data?.choices?.[0]?.message?.content ?? '').trim()
@@ -167,7 +180,7 @@ export async function handle(request, env, fetchImpl = fetch) {
     const result = await route(await readJson(request), env, fetchImpl)
     return json(200, result, cors)
   } catch (err) {
-    if (err instanceof HttpError) return json(err.status, { error: err.message }, cors)
+    if (err instanceof HttpError) return json(err.status, { error: err.message, ...err.extra }, cors)
     console.error('Error inesperado:', err)
     return json(500, { error: 'Error interno' }, cors)
   }
