@@ -4,8 +4,9 @@ compatibility_date = "2026-01-01"
 
 [vars]
 # Orígenes que pueden llamar al proxy (separados por coma; admite * en un subdominio).
-# Cambia analyzor.pages.dev por el dominio real de tu proyecto en Cloudflare Pages.
-ALLOWED_ORIGINS = "http://localhost:5173,https://analyzor.pages.dev,https://*.analyzor.pages.dev"
+# Solo el dominio exacto del frontend. No uses comodines como https://analyzor-*.vercel.app:
+# cualquiera podría crear un proyecto con ese patrón y gastar tu cuota de IA.
+ALLOWED_ORIGINS = "http://localhost:5173,https://analyzor.vercel.app"
 # Groq retiró llama-3.3-70b-versatile el 16/08/2026. Revisa https://console.groq.com/docs/deprecations
 GROQ_MODEL = "openai/gpt-oss-120b"
 

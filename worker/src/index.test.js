@@ -138,6 +138,20 @@ describe('errores de Groq y rate limit', () => {
     expect((await handle(post('/api/sql', SQL_BODY), { ...ENV, GROQ_API_KEY: '' }, groqOk('x'))).status).toBe(503)
   })
 
+  it('el error de Groq deja diagnóstico en los logs y expone solo el código, nunca la clave', async () => {
+    const logs = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const boom = vi.fn(async () => new Response('', { status: 400, headers: { server: 'cloudflare', 'cf-ray': 'abc-MIA' } }))
+    const res = await handle(post('/api/sql', SQL_BODY), ENV, boom)
+    expect(await res.json()).toEqual({ error: 'El proveedor de IA devolvió un error', upstream_status: 400 })
+
+    const logged = logs.mock.calls.flat().join(' ')
+    expect(logged).toContain('400')
+    expect(logged).toContain('"cfRay":"abc-MIA"')
+    expect(logged).toContain('"keyLength":15')
+    expect(logged).not.toContain('gsk_test_secret')
+    logs.mockRestore()
+  })
+
   it('Groq devuelve error o no responde: 502/504 sin exponer detalles', async () => {
     const boom = vi.fn(async () => new Response('rate limited: gsk_test_secret', { status: 429 }))
     const res = await handle(post('/api/sql', SQL_BODY), ENV, boom)
