@@ -150,6 +150,15 @@ const UserIcon = () => (
   </svg>
 )
 
+// Las respuestas usan **negritas** estilo markdown; se pintan como <strong> (sin HTML crudo)
+function renderInline(text) {
+  return String(text ?? '').split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') && part.length > 4
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
+  )
+}
+
 const SUGGESTIONS = [
   '¿Cuál es el promedio de los datos?',
   '¿Cuáles son los valores máximos y mínimos?',
@@ -285,7 +294,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend })
               whiteSpace: 'pre-wrap',
               overflowWrap: 'break-word',
             }}>
-              {msg.content}
+              {renderInline(msg.content)}
             </div>
             {msg.role === 'assistant' && msg.query_result?.chart && (
               <ChartRenderer chartConfig={msg.query_result.chart} />

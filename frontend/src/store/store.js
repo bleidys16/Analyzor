@@ -1,10 +1,6 @@
 import { create } from 'zustand'
 
 export const useStore = create((set) => ({
-  // Session
-  sessionId: null,
-  setSessionId: (id) => set({ sessionId: id }),
-
   // Current dataset
   currentDataset: null,
   setCurrentDataset: (dataset) => set({ currentDataset: dataset }),

@@ -1,11 +1,11 @@
 const techStack = [
-  { name: 'DUCKDB', desc: 'Base de datos SQL integrada' },
-  { name: 'PANDAS', desc: 'Análisis y manipulación' },
-  { name: 'DJANGO REST', desc: 'API robusta en backend' },
+  { name: 'DUCKDB-WASM', desc: 'SQL analítico en tu navegador' },
   { name: 'REACT', desc: 'Interfaz de usuario moderna' },
   { name: 'ZUSTAND', desc: 'Gestión de estado fluida' },
-  { name: 'CELERY / REDIS', desc: 'Procesamiento en cola' },
-  { name: 'WEASYPRINT', desc: 'Reportes premium en PDF' },
+  { name: 'RECHARTS', desc: 'Gráficos interactivos' },
+  { name: 'GROQ · GPT-OSS', desc: 'IA para convertir preguntas en SQL' },
+  { name: 'CLOUDFLARE', desc: 'Despliegue global sin servidores' },
+  { name: 'JSPDF', desc: 'Reportes PDF generados al instante' },
 ]
 
 export default function TechTicker({ isDark }) {

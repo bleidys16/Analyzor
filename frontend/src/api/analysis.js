@@ -1,22 +1,7 @@
-import client from './client'
+import { getAnalysis } from '../engine/datasetService'
+import { call } from './localApi'
 
 export const analysisAPI = {
-  autoAnalyze: async (datasetId) => {
-    return client.post('/analysis/auto-analyze/', { dataset_id: datasetId })
-  },
-
-  getAnalysis: async (datasetId) => {
-    return client.get(`/analysis/${datasetId}/`)
-  },
-
-  executeSQL: async (datasetId, sql) => {
-    return client.post('/analysis/query/', {
-      dataset_id: datasetId,
-      sql,
-    })
-  },
-
-  getDistributions: async (datasetId) => {
-    return client.post('/analysis/distributions/', { dataset_id: datasetId })
-  },
+  getAnalysis: (datasetId) => call(() => getAnalysis(datasetId)),
+  autoAnalyze: (datasetId) => call(() => getAnalysis(datasetId, { force: true })),
 }

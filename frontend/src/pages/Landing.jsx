@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
-import { useStore } from '../store/store'
 import TopographicBackground from '../components/TopographicBackground'
 import TechTicker from '../components/TechTicker'
 import StatsChart from '../components/StatsChart'
 
 export default function Landing() {
   const navigate = useNavigate()
-  const { sessionId } = useStore()
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
