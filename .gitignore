@@ -57,3 +57,7 @@ build/
 .cache/
 .coverage
 htmlcov/
+
+# Cloudflare Workers
+.wrangler/
+.dev.vars
