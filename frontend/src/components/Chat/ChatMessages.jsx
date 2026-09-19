@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BarChart, Bar, ScatterChart, Scatter, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { parseInline, parseMessage } from '../../utils/messageFormat'
 
 const chartColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 const pieColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#d946ef']
@@ -150,12 +151,55 @@ const UserIcon = () => (
   </svg>
 )
 
-// Las respuestas usan **negritas** estilo markdown; se pintan como <strong> (sin HTML crudo)
-function renderInline(text) {
-  return String(text ?? '').split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') && part.length > 4
-      ? <strong key={i}>{part.slice(2, -2)}</strong>
-      : part
+// Pinta un texto con **negritas** y `código en línea` como elementos de React (nunca HTML crudo)
+function InlineText({ text }) {
+  return parseInline(text).map((part, i) => {
+    if (part.type === 'bold') return <strong key={i}>{part.text}</strong>
+    if (part.type === 'code') {
+      return (
+        <code key={i} style={{ background: 'var(--code-bg)', border: '1px solid var(--card-border)', borderRadius: '4px', padding: '1px 5px', fontSize: '12px', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' }}>
+          {part.text}
+        </code>
+      )
+    }
+    return part.text
+  })
+}
+
+function CodeBlock({ lang, code }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (err) {
+      console.warn('No se pudo copiar:', err)
+    }
+  }
+
+  return (
+    <div style={{ margin: '8px 0', border: '1px solid var(--card-border)', borderRadius: '8px', overflow: 'hidden', background: 'var(--code-bg)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 10px', borderBottom: '1px solid var(--card-border)', fontSize: '11px', color: 'var(--text-muted)' }}>
+        <span>{lang || 'código'}</span>
+        <button onClick={copy} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit' }}>
+          {copied ? '¡Copiado!' : 'Copiar'}
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '10px 12px', overflowX: 'auto', fontSize: '12px', lineHeight: 1.5, whiteSpace: 'pre', color: 'var(--text-main)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' }}>
+        <code>{code}</code>
+      </pre>
+    </div>
+  )
+}
+
+// Un mensaje del chat: texto con formato ligero y bloques de código
+function MessageContent({ text }) {
+  return parseMessage(text).map((segment, i) =>
+    segment.type === 'code'
+      ? <CodeBlock key={i} lang={segment.lang} code={segment.code} />
+      : <span key={i} style={{ display: 'block' }}><InlineText text={segment.text} /></span>
   )
 }
 
@@ -294,7 +338,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, s
               whiteSpace: 'pre-wrap',
               overflowWrap: 'break-word',
             }}>
-              {renderInline(msg.content)}
+              <MessageContent text={msg.content} />
             </div>
             {msg.role === 'assistant' && msg.query_result?.chart && (
               <ChartRenderer chartConfig={msg.query_result.chart} />

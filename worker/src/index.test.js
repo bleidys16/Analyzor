@@ -98,11 +98,79 @@ describe('/api/answer', () => {
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body).messages[0].content).toContain('"a":10.5')
   })
 
-  it('sin filas hace charla general con el esquema', async () => {
-    const fetchImpl = groqOk('Es un dataset de precios.')
-    const res = await handle(post('/api/answer', { question: 'de qué trata?', columns: ['precio'], rows_count: 40 }), ENV, fetchImpl)
-    expect((await res.json()).answer).toBe('Es un dataset de precios.')
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).messages[0].content).toContain('Filas totales: 40')
+  it("si la consulta no devolvió filas, lo dice en vez de inventar", async () => {
+    const fetchImpl = groqOk("No hay resultados.")
+    const body = { question: "ventas en 1900", columns: ["precio"], sql: "SELECT 1 FROM data WHERE 1=0", rows: [] }
+    await handle(post("/api/answer", body), ENV, fetchImpl)
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).messages[0].content).toContain("no devolvió filas")
+  })
+})
+
+describe("/api/ask: datos o conversación", () => {
+  const ask = (overrides = {}) => post("/api/ask", { ...SQL_BODY, ...overrides })
+
+  it("una consulta a los datos devuelve { sql }", async () => {
+    const res = await handle(ask(), ENV, groqOk("SELECT AVG(precio) FROM data"))
+    expect(await res.json()).toEqual({ sql: "SELECT AVG(precio) FROM data" })
+  })
+
+  it("si la IA responde CHAT: devuelve { answer } sin el marcador (charla, programación, cultura general)", async () => {
+    const fence = '`'.repeat(3)
+    const reply = `CHAT: Así se hace en Java:\n${fence}java\nSystem.out.println(1);\n${fence}`
+    const res = await handle(ask({ question: '¿cómo imprimo hola mundo en java?' }), ENV, groqOk(reply))
+    const body = await res.json()
+    expect(body.sql).toBeUndefined()
+    expect(body.answer).toMatch(/^Así se hace en Java:/)
+    expect(body.answer).toContain("System.out.println")
+  })
+
+  it("el marcador se reconoce sin importar mayúsculas ni espacios", async () => {
+    expect((await (await handle(ask(), ENV, groqOk("  chat:   hola  "))).json()).answer).toBe("hola")
+  })
+
+  it("CHAT: vacío es un error (el cliente cae a reglas)", async () => {
+    expect((await handle(ask(), ENV, groqOk("CHAT:   "))).status).toBe(502)
+  })
+
+  it("el prompt deja claro que puede responder cualquier cosa y que no debe inventar cifras", async () => {
+    const fetchImpl = groqOk("CHAT: hola")
+    await handle(ask({ question: "hola" }), ENV, fetchImpl)
+    const system = JSON.parse(fetchImpl.mock.calls[0][1].body).messages[0].content
+    expect(system).toContain("cualquier otra pregunta")
+    expect(system).toContain("CHAT:")
+    expect(system).toContain("No inventes cifras")
+  })
+
+  it("envía el historial de la conversación como turnos previos y el número de filas", async () => {
+    const fetchImpl = groqOk("CHAT: claro")
+    const history = [
+      { role: "user", content: "hola" },
+      { role: "assistant", content: "¡Hola!" },
+    ]
+    await handle(ask({ question: "y otro ejemplo?", history, rows_count: 300 }), ENV, fetchImpl)
+    const messages = JSON.parse(fetchImpl.mock.calls[0][1].body).messages
+    expect(messages.map((m) => m.role)).toEqual(["system", "user", "assistant", "user"])
+    expect(messages[1].content).toBe("hola")
+    expect(messages[3].content).toContain("300 filas")
+    expect(messages[3].content).toContain("y otro ejemplo?")
+  })
+
+  it.each([
+    ["más de 6 mensajes", { history: Array.from({ length: 7 }, () => ({ role: "user", content: "x" })) }],
+    ["rol inválido", { history: [{ role: "system", content: "x" }] }],
+    ["contenido enorme", { history: [{ role: "user", content: "x".repeat(1001) }] }],
+    ["historial que no es lista", { history: "hola" }],
+    ["rows_count negativo", { rows_count: -1 }],
+    ["rows_count que no es entero", { rows_count: "300" }],
+  ])("rechaza %s con 400 y no llama a Groq", async (_n, overrides) => {
+    const fetchImpl = groqOk("CHAT: x")
+    expect((await handle(ask(overrides), ENV, fetchImpl)).status).toBe(400)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it("/api/sql sigue funcionando como alias (frontend anterior durante un despliegue)", async () => {
+    const res = await handle(post("/api/sql", SQL_BODY), ENV, groqOk("SELECT 1"))
+    expect((await res.json()).sql).toBe("SELECT 1")
   })
 })
 

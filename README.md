@@ -13,7 +13,8 @@
 
 ## Qué puedes hacer
 
-- **Chat con IA + respaldo local.** La IA convierte tu pregunta en SQL; si no está disponible o alcanzó su límite, un motor de reglas resuelve las preguntas comunes (promedio, suma, máximo, conteos, agrupaciones…).
+- **Chat con IA que responde cualquier cosa.** Si preguntas por tus datos, la IA escribe el SQL, se ejecuta en tu navegador y te explica el resultado con un gráfico. Si conversas o preguntas otra cosa (saludos, programación, cultura general, "¿de qué trata mi dataset?"), responde en texto, con bloques de código y memoria de la conversación.
+- **Respaldo local.** Si la IA no está disponible o alcanzó su límite, un motor de reglas resuelve las preguntas comunes sobre tus datos (promedio, suma, máximo, conteos, agrupaciones…) y avisa al usuario.
 - **Perfilado automático.** Media, mediana, desviación, cuartiles, correlaciones, calidad de datos y anomalías.
 - **Gráficos** elegidos según el resultado de cada consulta.
 - **Reporte PDF** generado en el navegador.
@@ -31,7 +32,7 @@ Los datos **nunca salen de tu navegador**. El análisis corre localmente con Duc
 ```
 Navegador (React)                                     Cloudflare Worker          Groq
  ├─ DuckDB-WASM: perfilado estadístico y SQL      ┐
- ├─ IndexedDB: datasets y historial del chat      ├─ POST /api/sql, /api/answer ─▶ gpt-oss
+ ├─ IndexedDB: datasets y historial del chat      ├─ POST /api/ask, /api/answer ─▶ gpt-oss
  ├─ PDF generado en el cliente (jsPDF)            │   · la API key vive solo aquí
  └─ Motor de reglas (si la IA no está disponible) ┘   · origen permitido, tamaño y ráfagas limitados
                                                       · cuota diaria por usuario y global (Durable Object)

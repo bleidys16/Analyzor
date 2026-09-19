@@ -1,8 +1,11 @@
 // Proxy de IA para Analyzor: oculta la API key de Groq y limita lo que se puede enviar.
-//   POST /api/sql     { question, columns, dtypes, sample }                  -> { sql }
-//   POST /api/answer  { question, columns, dtypes, sql?, rows?, rows_count? } -> { answer }
+//   POST /api/ask     { question, columns, dtypes, sample, rows_count?, history? } -> { sql } | { answer }
+//        La IA decide: una consulta a los datos (devuelve `sql`) o conversación general (devuelve `answer`).
+//   POST /api/answer  { question, sql?, rows?, rows_count? }                       -> { answer }
+//        Redacta la respuesta a partir del resultado de una consulta ya ejecutada.
+//   POST /api/sql     alias de /api/ask (compatibilidad con el frontend anterior durante un despliegue)
 //   GET  /health
-import { answerMessages, sqlMessages } from './prompts.js'
+import { CHAT_MARKER, answerMessages, askMessages } from './prompts.js'
 import { consumeQuota } from './usage.js'
 
 export { UsageCounter } from './usage.js'
@@ -12,7 +15,7 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_MODEL = 'openai/gpt-oss-120b'
 const MAX_BODY_BYTES = 16 * 1024
 const GROQ_TIMEOUT_MS = 20000
-const LIMITS = { question: 500, columns: 100, columnName: 100, rows: 5, sql: 2000 }
+const LIMITS = { question: 500, columns: 100, columnName: 100, rows: 5, sql: 2000, history: 6, historyContent: 1000 }
 const LOCAL_RATE = { limit: 30, windowMs: 60_000 }
 
 class HttpError extends Error {
@@ -93,6 +96,17 @@ function validate(body, { needsSample }) {
   if (body.sql !== undefined && (typeof body.sql !== 'string' || body.sql.length > LIMITS.sql)) {
     throw new HttpError(400, 'sql inválido')
   }
+  if (body.rows_count !== undefined && !(Number.isInteger(body.rows_count) && body.rows_count >= 0)) {
+    throw new HttpError(400, 'rows_count inválido')
+  }
+  const { history } = body
+  if (history !== undefined && (
+    !Array.isArray(history) || history.length > LIMITS.history
+    || history.some((m) => !isPlainObject(m) || !['user', 'assistant'].includes(m.role)
+      || typeof m.content !== 'string' || m.content.length > LIMITS.historyContent)
+  )) {
+    throw new HttpError(400, `history inválido (máximo ${LIMITS.history} mensajes)`)
+  }
   return body
 }
 
@@ -166,12 +180,24 @@ async function charge(env, ip) {
   throw new HttpError(429, message, { scope: quota.scope, retry_after: quota.retryAfter })
 }
 
+// El modelo responde con SQL crudo, o con "CHAT: ..." cuando el mensaje no es sobre los datos
+export function parseAsk(text) {
+  const chat = text.match(new RegExp(`^\\s*${CHAT_MARKER}\\s*([\\s\\S]*)$`, 'i'))
+  if (!chat) return { sql: text }
+  const answer = chat[1].trim()
+  if (!answer) throw new HttpError(502, 'El proveedor de IA devolvió una respuesta vacía')
+  return { answer }
+}
+
+const ask = async (body, env, fetchImpl, { ip }) => {
+  const b = validate(body, { needsSample: true })
+  await charge(env, ip)
+  return parseAsk(await callGroq(env, fetchImpl, askMessages(b), { maxTokens: 2000, temperature: 0.3 }))
+}
+
 const ROUTES = {
-  '/api/sql': async (body, env, fetchImpl, { ip }) => {
-    const b = validate(body, { needsSample: true })
-    await charge(env, ip)
-    return { sql: await callGroq(env, fetchImpl, sqlMessages(b), { maxTokens: 1500, temperature: 0.1 }) }
-  },
+  '/api/ask': ask,
+  '/api/sql': ask,
   '/api/answer': async (body, env, fetchImpl, { ip }) => {
     const b = validate(body, { needsSample: false })
     await charge(env, ip)

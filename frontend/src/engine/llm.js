@@ -3,6 +3,8 @@
 const TIMEOUT_MS = 25000
 const SAMPLE_ROWS = 5
 const MAX_COLUMNS = 60
+const MAX_HISTORY = 6
+const MAX_HISTORY_CHARS = 600
 
 // El Worker responde 429 al superar el tope diario (daily = true) o al preguntar demasiado rápido
 export class LlmLimitError extends Error {
@@ -43,9 +45,24 @@ export function createLlmClient({ baseUrl = import.meta.env?.VITE_LLM_URL || '',
     sample: (sample || []).slice(0, SAMPLE_ROWS),
   })
 
+  // Solo se envían los últimos mensajes de la conversación, recortados
+  const recent = (history) =>
+    (history || [])
+      .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-MAX_HISTORY)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_HISTORY_CHARS) }))
+
   return {
     enabled: Boolean(base),
-    generateSql: async (ctx) => (await post('/api/sql', { question: ctx.question, ...context(ctx) })).sql,
+    // La IA decide: consulta a los datos -> { sql }, o conversación general -> { answer }
+    ask: (ctx) =>
+      post('/api/ask', {
+        question: ctx.question,
+        ...context(ctx),
+        rows_count: Number.isInteger(ctx.rowsCount) ? ctx.rowsCount : undefined,
+        history: recent(ctx.history),
+      }),
+    // Redacta la respuesta a partir del resultado de una consulta ya ejecutada
     answer: async (ctx) =>
       (await post('/api/answer', {
         question: ctx.question,
@@ -54,8 +71,6 @@ export function createLlmClient({ baseUrl = import.meta.env?.VITE_LLM_URL || '',
         rows: (ctx.rows || []).slice(0, SAMPLE_ROWS),
         rows_count: ctx.rowsCount,
       })).answer,
-    chat: async (ctx) =>
-      (await post('/api/answer', { question: ctx.question, ...context(ctx), rows_count: ctx.rowsCount })).answer,
   }
 }
 

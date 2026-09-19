@@ -21,6 +21,9 @@ const INTENT = {
   show: ['muestra', 'muéstrame', 'muestrame', 'mostrar', 'ver', 'show', 'display', 'todos', 'datos', 'lista', 'listar', 'primeros', 'resumen'],
 }
 
+// Palabras que indican que la pregunta trata del dataset aunque no nombre una columna
+const DATASET_WORDS = ['datos', 'dato', 'dataset', 'tabla', 'registros', 'registro', 'filas', 'fila', 'columnas', 'columna', 'csv', 'archivo', 'resumen', 'información', 'informacion']
+
 // Columnas que la pregunta menciona. Solo se comparan palabras de 4+ letras: así "de", "el" o "los"
 // no casan con nombres de columna como "Descripcion".
 export function matchColumns(question, columns) {
@@ -41,6 +44,9 @@ const isNumericCol = (col, dtypes) => ['integer', 'float'].includes(String(dtype
 export function generateFallbackSql(question, columns, dtypes = {}) {
   const q = question.toLowerCase().trim()
   const matched = matchColumns(q, columns)
+  // Si la pregunta no trata de los datos (saludos, programación, cultura general...) las reglas no la contestan:
+  // palabras sueltas como "mostrar" o "menor" no deben disparar una consulta sin relación
+  if (matched.length === 0 && !hasWord(q, DATASET_WORDS)) return null
   const numeric = columns.filter((c) => isNumericCol(c, dtypes))
   const measurable = numeric.filter((c) => !isIdColumn(c))
   const measures = measurable.length ? measurable : numeric

@@ -169,10 +169,27 @@ describe('fallback de reglas', () => {
   })
 
   it('promedio de "todo" no incluye columnas ID ni de texto', () => {
-    const sql = generateFallbackSql('cuál es el promedio', columns, dtypes)
+    const sql = generateFallbackSql('cuál es el promedio de los datos', columns, dtypes)
     expect(sql).not.toContain('customer_id')
     expect(sql).not.toContain('Descripcion')
     expect(sql).toContain('"Precio"')
+  })
+
+  it.each([
+    'hola',
+    'como estas',
+    'puedes decirme como mostrar hola mundo en java',
+    'cuéntame un chiste',
+    'quiero saber el menor de dos números en python',
+    'cuál es el promedio', // sin columna ni mención de los datos: es ambigua, mejor no adivinar
+  ])('una pregunta que no trata de los datos NO genera consulta: "%s"', (question) => {
+    expect(generateFallbackSql(question, columns, dtypes)).toBeNull()
+  })
+
+  it('una pregunta con una columna o con palabras como "datos" sí trata de los datos', () => {
+    expect(generateFallbackSql('mostrar el precio', columns, dtypes)).not.toBeNull() // menciona una columna
+    expect(generateFallbackSql('muestra los datos', columns, dtypes)).toBe('SELECT * FROM data LIMIT 50')
+    expect(generateFallbackSql('dame un resumen general', columns, dtypes)).toBe('SELECT * FROM data LIMIT 50')
   })
 
   it('las palabras clave se buscan completas ("conversión" no dispara "ver")', () => {
