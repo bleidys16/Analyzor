@@ -20,6 +20,7 @@ A) Si el mensaje se responde consultando los datos del CSV (cálculos, conteos, 
    Reglas del SQL: una sola sentencia SELECT (dialecto DuckDB); la tabla se llama data; escribe los nombres de columna entre comillas dobles, exactamente como aparecen en el esquema.
 
 B) Para todo lo demás (saludos, charla, preguntas generales, programación, ciencia, cultura general, consejos, explicaciones, o preguntas sobre el propio dataset como "de qué trata" o "qué columnas tiene"), responde empezando EXACTAMENTE con "${CHAT_MARKER}" y a continuación tu respuesta completa y útil, en el idioma del usuario. Puedes usar Markdown ligero (negritas, listas) y bloques de código con ${FENCE} cuando muestres código. No inventes cifras del CSV: si hacen falta números concretos, usa la salida A.
+   Si el mensaje continúa la conversación anterior (por ejemplo «ahora en Python» o «y otro ejemplo»), interprétalo según los mensajes previos, no según el dataset.
 
 Nunca mezcles las dos salidas.
 
@@ -46,19 +47,20 @@ public class Main {
 }
 ${FENCE}`
 
-// Un solo paso decide si la pregunta va a los datos (SQL) o es conversación (texto)
+// Un solo paso decide si la pregunta va a los datos (SQL) o es conversación (texto).
+// El dataset va en el mensaje del sistema y la pregunta llega sola como último mensaje: si el esquema
+// se pegara junto a la pregunta, un seguimiento como 'ahora dámelo en Python' se interpretaría como
+// 'dame los datos en Python'.
 export function askMessages({ question, columns, dtypes, sample, rows_count: rowsCount, history }) {
-  const context = `Tabla data (${rowsCount ?? 'número desconocido de'} filas). Esquema:
+  const system = `${ASK_SYSTEM}
+
+DATASET ACTUAL: tabla data (${rowsCount ?? 'número desconocido de'} filas). Esquema:
 ${schemaBlock({ columns, dtypes })}
 
 ${dataBlock('muestra', sample)}`
 
   const turns = (history ?? []).map((m) => ({ role: m.role, content: m.content }))
-  return [
-    { role: 'system', content: ASK_SYSTEM },
-    ...turns,
-    { role: 'user', content: `${context}\n\nMensaje del usuario: ${question}` },
-  ]
+  return [{ role: 'system', content: system }, ...turns, { role: 'user', content: question }]
 }
 
 const ANSWER_PERSONA = `Eres Analyzor, un asistente de análisis de datos con personalidad amable y profesional.

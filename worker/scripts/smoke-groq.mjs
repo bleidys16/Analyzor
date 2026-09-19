@@ -80,7 +80,8 @@ const followUp = await ask('ahora dámelo en Python', [
   { role: 'assistant', content: 'Claro: System.out.println("Hola mundo");' },
 ])
 show('respuesta', followUp.body.answer ?? followUp.body)
-check('entiende el contexto (Python)', /print/.test(followUp.body.answer || ''), `${followUp.ms} ms`)
+check('entiende el contexto: da el Hola mundo en Python', followUp.status === 200 && /print\s*\(\s*["']Hola/i.test(followUp.body.answer || ''), `${followUp.ms} ms`)
+check('no lo confunde con los datos del dataset (pandas)', !/pandas|dataframe/i.test(followUp.body.answer || ''))
 
 console.log('\n6) Redactar el resultado de una consulta')
 const answer = await call('/api/answer', {
