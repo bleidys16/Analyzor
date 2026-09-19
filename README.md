@@ -1,83 +1,88 @@
 # Analyzor
 
-Analyzor es una plataforma que combina inteligencia artificial con análisis de datos tradicional para que cualquier persona pueda explorar sus datasets usando lenguaje natural. Sube un CSV, haz preguntas como si hablaras con un analista, y obtén respuestas con gráficos, tablas y reportes PDF al instante.
+Analyzor permite explorar un CSV con lenguaje natural. Sube el archivo, haz preguntas como si hablaras con un analista y obtén respuestas con tablas, gráficos y un reporte PDF.
 
-![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
-![Django](https://img.shields.io/badge/Django-4.2%2B-darkgreen.svg)
-![React](https://img.shields.io/badge/React-19%2B-61DAFB.svg)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-316192.svg)
-![DuckDB](https://img.shields.io/badge/DuckDB-1.5%2B-FFF000.svg)
-![Groq](https://img.shields.io/badge/Groq-Llama%203-1A1A2E.svg)
+![React](https://img.shields.io/badge/React-19-61DAFB.svg)
+![DuckDB](https://img.shields.io/badge/DuckDB--WASM-1.33-FFF000.svg)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages%20%2B%20Workers-F38020.svg)
+![Groq](https://img.shields.io/badge/Groq-gpt--oss-1A1A2E.svg)
 
-## Funcionalidades
+## Cómo funciona
 
-- **Chat con IA** — Haz preguntas en lenguaje natural sobre tus datos. La IA genera SQL, lo ejecuta y responde con texto + gráficos.
-- **Chat híbrido** — Cuando la IA falla, un motor DuckDB con reglas predefinidas toma el control automáticamente.
-- **Perfilado automático** — Estadísticas descriptivas (media, mediana, desviación, percentiles), histogramas y gráficos de dona.
-- **Gestión de datasets** — Subida, vista previa interactiva, eliminación e historial por sesión.
-- **Exportación a PDF** — Genera reportes con tablas y gráficos listos para compartir.
-- **Tema oscuro/claro** — Con persistencia en localStorage.
+Los datos **nunca salen de tu navegador**. El análisis corre localmente con DuckDB compilado a WebAssembly; solo la traducción "pregunta → SQL" usa una IA externa, y a ella se le envía únicamente el **esquema de columnas y hasta 5 filas de muestra**.
+
+```
+Navegador (React)                                     Cloudflare Worker          Groq
+ ├─ DuckDB-WASM: perfilado estadístico y SQL      ┐
+ ├─ IndexedDB: datasets y historial del chat      ├─ POST /api/sql, /api/answer ─▶ gpt-oss
+ ├─ PDF generado en el cliente (jsPDF)            │   (la API key vive solo aquí)
+ └─ Motor de reglas (si la IA no está disponible) ┘
+```
+
+- **Chat con IA + respaldo local**: la IA genera el SQL; si falla o no hay conexión, un motor de reglas resuelve las preguntas comunes (promedio, suma, máximo, conteos, agrupaciones…).
+- **Perfilado automático**: media, mediana, desviación, cuartiles, correlaciones, calidad de datos y anomalías.
+- **Seguridad**: el SQL se valida (una sola consulta `SELECT`, sin funciones de lectura de archivos) y corre en el sandbox del navegador.
+- **Sin servidor de datos**: no hay base de datos, ni disco, ni arranque en frío. Cuesta $0 en los planes gratuitos.
 
 ## Estructura
 
 ```
-analyzor/
-├── backend/
-│   ├── analyzor/          # Configuración Django
-│   ├── chat/              # Lógica de chat, SQL, IA
-│   ├── datasets/          # API de datasets (CRUD)
-│   ├── analysis/          # Perfilado estadístico
-│   ├── api/               # Endpoints REST
-│   ├── users/             # Autenticación
-│   └── export/            # Exportación (PDF)
-├── frontend/
-│   ├── src/
-│   │   ├── pages/         # Landing, Dashboard
-│   │   ├── components/    # Chat, gráficas, UI
-│   │   ├── api/           # Cliente Axios
-│   │   └── store/         # Estado global (Zustand)
-│   └── public/            # Logo, favicon
-└── README.md
+frontend/            React + Vite
+  src/engine/        Motor local: DuckDB, perfilado, chat, PDF, IndexedDB
+  src/api/           Adaptadores que exponen el motor con la forma de API que usa la UI
+  src/pages, components/
+worker/              Cloudflare Worker: proxy de IA (oculta la API key de Groq)
 ```
-
-## Requisitos del sistema
-
-- **Python** 3.11+
-- **Node.js** 18+
-- **PostgreSQL** 16+ (opcional, usa SQLite por defecto en local)
 
 ## Desarrollo local
 
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-```
-
-### Frontend
+Requisitos: Node 20+.
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev        # http://localhost:5173
+npm test           # pruebas del motor
 ```
 
-### Variables de entorno
+Sin más configuración la app funciona con el motor de reglas. Para activar la IA en local:
 
-`backend/.env`:
+```bash
+cd worker
+npm install
+npx wrangler dev --var GROQ_API_KEY:<tu-clave>     # http://localhost:8787
+# en otra terminal, en frontend/.env.local:
+#   VITE_LLM_URL=http://localhost:8787
+```
 
-| Variable | Descripción |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL (producción) o SQLite (local) |
-| `GROQ_API_KEY` | API key de Groq |
-| `OLLAMA_URL` | URL de Ollama local (ej. `http://localhost:11434`) |
-| `ENV` | `production` o `development` |
+> No pegues la clave en el código ni en el repo (`.env.local` está ignorado por git).
 
-## Despliegue
+## Despliegue (planes gratuitos)
 
-Ambos servicios se despliegan automáticamente desde GitHub vía Render Blueprint (`render.yaml`).
+**1. Worker de IA**
+
+```bash
+cd worker
+npx wrangler login
+npx wrangler secret put GROQ_API_KEY        # tu clave de https://console.groq.com
+# edita ALLOWED_ORIGINS en wrangler.toml con el dominio de tu Pages
+npx wrangler deploy                         # imprime la URL, p. ej. https://analyzor-llm.<usuario>.workers.dev
+```
+
+**2. Frontend en Cloudflare Pages**
+
+- Conecta el repositorio en Cloudflare Pages.
+- Directorio raíz: `frontend` · Comando de build: `npm run build` · Directorio de salida: `dist`
+- Variable de entorno: `VITE_LLM_URL` = la URL del Worker.
+
+Los binarios de DuckDB-WASM (~35 MB) se descargan del CDN de jsDelivr en la primera visita y quedan en caché; no se suben a Pages (que limita cada archivo a 25 MiB).
+
+## Límites conocidos
+
+- Los datasets viven en el navegador (IndexedDB): borrar los datos del sitio los elimina. Tamaño máximo: 200 MB por CSV.
+- Los límites y modelos de los planes gratuitos (Groq, Cloudflare) cambian con el tiempo; el modelo se configura con la variable `GROQ_MODEL` (por defecto `openai/gpt-oss-120b`; Groq retiró `llama-3.3-70b-versatile` el 16/08/2026, consulta [la lista de deprecaciones](https://console.groq.com/docs/deprecations)).
+- La versión anterior (Django + PostgreSQL en Render) está disponible en el tag `legacy-django`.
+
+## Camino a producto
+
+La persistencia pasa por `frontend/src/engine/store.js`. Para cuentas de usuario y sincronización entre dispositivos basta con implementar la misma interfaz sobre un servicio como Supabase (Auth + Storage) y aplicar cuotas por usuario en el Worker.

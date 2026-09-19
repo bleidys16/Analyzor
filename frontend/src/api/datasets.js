@@ -1,23 +1,9 @@
-import client from './client'
+import { deleteDataset, getDataset, listDatasets, uploadDataset } from '../engine/datasetService'
+import { call } from './localApi'
 
 export const datasetsAPI = {
-  upload: async (file) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    return client.post('/datasets/upload/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-  },
-
-  getById: async (id) => {
-    return client.get(`/datasets/${id}/`)
-  },
-
-  getAll: async () => {
-    return client.get('/datasets/')
-  },
-
-  delete: async (id) => {
-    return client.delete(`/datasets/${id}/`)
-  },
+  upload: (file) => call(() => uploadDataset(file)),
+  getById: (id) => call(() => getDataset(id)),
+  getAll: () => call(listDatasets),
+  delete: (id) => call(() => deleteDataset(id)),
 }

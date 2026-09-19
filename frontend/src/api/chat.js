@@ -1,23 +1,8 @@
-import client from './client'
+import { clearHistory, getHistory, sendMessage } from '../engine/chatService'
+import { call } from './localApi'
 
 export const chatAPI = {
-    // Send message
-    sendMessage: async (datasetId, message) => {
-        return client.post('/chat/message/', {
-            dataset_id: datasetId,
-            content: message,
-        })
-    },
-
-    // Get chat history
-    getHistory: async (datasetId) => {
-        return client.get(`/chat/history/?dataset_id=${datasetId}`)
-    },
-
-    // Clear chat
-    clearChat: async (datasetId) => {
-        return client.delete('/chat/clear/', {
-            data: { dataset_id: datasetId },
-        })
-    },
+  sendMessage: (datasetId, message) => call(() => sendMessage(datasetId, message)),
+  getHistory: (datasetId) => call(() => getHistory(datasetId)),
+  clearChat: (datasetId) => call(() => clearHistory(datasetId)),
 }

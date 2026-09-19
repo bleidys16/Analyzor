@@ -1,0 +1,15 @@
+{
+  "name": "analyzor-llm-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke-groq.mjs"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.1",
+    "wrangler": "^4.135.0"
+  }
+}

@@ -76,7 +76,7 @@ export default function Dashboard() {
         
         await loadChatHistory()
       } catch (err) {
-        setError(err.response?.data?.detail || 'Error al cargar datos')
+        setError(err.response?.data?.error || 'Error al cargar datos')
       } finally {
         setLoading(false)
       }
@@ -102,7 +102,7 @@ export default function Dashboard() {
   const loadChatHistory = async () => {
     try {
       const response = await chatAPI.getHistory(datasetId)
-      setMessages(response.data?.history || [])
+      setMessages(Array.isArray(response.data) ? response.data : [])
     } catch (err) {
       console.error('Error cargando chat:', err)
     }
@@ -110,7 +110,7 @@ export default function Dashboard() {
 
   const handleExportPDF = async () => {
     try {
-      const response = await exportAPI.exportPDF(datasetId, analysis)
+      const response = await exportAPI.exportPDF(datasetId)
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
@@ -128,7 +128,7 @@ export default function Dashboard() {
     if (!message.trim()) return
 
     const userMsg = { role: 'user', content: message }
-    setMessages([...messages, userMsg])
+    setMessages(prev => [...prev, userMsg])
     
     setSending(true)
     try {

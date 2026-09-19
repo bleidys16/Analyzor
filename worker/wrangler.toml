@@ -1,0 +1,19 @@
+name = "analyzor-llm"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+# Orígenes que pueden llamar al proxy (separados por coma; admite * en un subdominio).
+# Cambia analyzor.pages.dev por el dominio real de tu proyecto en Cloudflare Pages.
+ALLOWED_ORIGINS = "http://localhost:5173,https://analyzor.pages.dev,https://*.analyzor.pages.dev"
+# Groq retiró llama-3.3-70b-versatile el 16/08/2026. Revisa https://console.groq.com/docs/deprecations
+GROQ_MODEL = "openai/gpt-oss-120b"
+
+# La clave NO va aquí: wrangler secret put GROQ_API_KEY
+
+# Rate limiting nativo (opcional). Sin él se usa un límite en memoria por instancia.
+# Consulta la documentación vigente de Cloudflare "Rate Limiting binding" antes de activarlo.
+# [[ratelimits]]
+# name = "RATE_LIMITER"
+# namespace_id = "1001"
+# simple = { limit = 20, period = 60 }
