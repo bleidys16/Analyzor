@@ -209,11 +209,13 @@ describe('fallback de reglas', () => {
 })
 
 describe('detectChartType', () => {
-  it('agrupado con pocas categorías -> pie; muchas -> bar', () => {
-    const few = Array.from({ length: 3 }, (_, i) => ({ c: `c${i}`, n: i + 1 }))
-    const many = Array.from({ length: 12 }, (_, i) => ({ c: `c${i}`, n: i + 1 }))
-    expect(detectChartType(few, ['c', 'n']).type).toBe('pie')
-    expect(detectChartType(many, ['c', 'n']).type).toBe('bar')
+  it("conteos con pocas categorías -> dona; promedios, sumas o muchas categorías -> barras", () => {
+    const few = Array.from({ length: 3 }, (_, i) => ({ c: `c${i}`, conteo: i + 1 }))
+    const averages = Array.from({ length: 3 }, (_, i) => ({ c: `c${i}`, promedio_n: i + 1 }))
+    const many = Array.from({ length: 12 }, (_, i) => ({ c: `c${i}`, conteo: i + 1 }))
+    expect(detectChartType(few, ["c", "conteo"]).type).toBe("pie")
+    expect(detectChartType(averages, ["c", "promedio_n"]).type).toBe("bar") // los promedios no suman un total
+    expect(detectChartType(many, ["c", "conteo"]).type).toBe("bar")
   })
 
   it('varios promedios en una fila -> barras por métrica (no un scatter de un punto)', () => {

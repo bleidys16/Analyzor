@@ -1,4 +1,4 @@
-import { detectChartType } from './chartGenerator'
+import { detectChartType, parseChartRequest } from './chartGenerator'
 import { generateFallbackAnswer, generateFallbackSql } from './fallbackSql'
 import { LlmLimitError, defaultLlm } from './llm'
 import { runOnDataset } from './session'
@@ -122,7 +122,10 @@ export async function sendMessage(datasetId, content, { llm = defaultLlm } = {})
           query_result: {
             data: result.data.slice(0, STORED_ROWS),
             columns: result.columns,
-            chart: detectChartType(result.data, result.columns, { listing: /^\s*SELECT\s+\*/i.test(sql) }),
+            chart: detectChartType(result.data, result.columns, {
+              listing: /^\s*SELECT\s+\*/i.test(sql),
+              preferred: parseChartRequest(question), // "en barras", "en líneas", "una torta"...
+            }),
           },
         }
       }

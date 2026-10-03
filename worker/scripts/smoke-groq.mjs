@@ -83,7 +83,17 @@ show('respuesta', followUp.body.answer ?? followUp.body)
 check('entiende el contexto: da el Hola mundo en Python', followUp.status === 200 && /print\s*\(\s*["']Hola/i.test(followUp.body.answer || ''), `${followUp.ms} ms`)
 check('no lo confunde con los datos del dataset (pandas)', !/pandas|dataframe/i.test(followUp.body.answer || ''))
 
-console.log('\n6) Redactar el resultado de una consulta')
+console.log('\n6) Pedidos de gráficos -> deben ser SQL (la app dibuja), no código de matplotlib')
+const chart = await ask('haz un gráfico de la cantidad de unidades por ciudad')
+show('respuesta', chart.body.sql ?? chart.body.answer ?? chart.body)
+check('devuelve SQL, no código', chart.status === 200 && /\b(SELECT|WITH)\b/i.test(chart.body.sql || '') && !chart.body.answer, `${chart.ms} ms`)
+check('agrupa por ciudad', /ciudad/i.test(chart.body.sql || ''))
+const series = await ask('muéstrame en líneas la evolución de la cantidad por mes')
+show('respuesta', series.body.sql ?? series.body.answer ?? series.body)
+check('serie de tiempo: devuelve SQL', series.status === 200 && /\b(SELECT|WITH)\b/i.test(series.body.sql || '') && !series.body.answer, `${series.ms} ms`)
+check('agrupa la fecha por mes', /date_trunc|strftime|month|extract/i.test(series.body.sql || ''))
+
+console.log('\n7) Redactar el resultado de una consulta')
 const answer = await call('/api/answer', {
   question: '¿En qué ciudad se vendió más?',
   ...schema,

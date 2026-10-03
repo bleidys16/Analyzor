@@ -18,6 +18,10 @@ const INTENT = {
   correlation: ['correlación', 'correlacion', 'relación', 'relacion', 'correlation'],
   group: ['agrupar', 'agrupa', 'group', 'categoria', 'categoría', 'por'],
   pie: ['torta', 'pie', 'pastel', 'porcentaje', 'circular'],
+  chart: ['gráfico', 'grafico', 'gráfica', 'grafica', 'graficar', 'grafícame', 'graficame', 'diagrama', 'visualiza', 'visualizar', 'visualización', 'visualizacion', 'dibuja', 'dibujar', 'plot'],
+  month: ['mes', 'meses', 'mensual', 'mensuales', 'month', 'monthly'],
+  year: ['año', 'años', 'anual', 'anuales', 'year', 'yearly'],
+  trend: ['tendencia', 'evolución', 'evolucion'],
   show: ['muestra', 'muéstrame', 'muestrame', 'mostrar', 'ver', 'show', 'display', 'todos', 'datos', 'lista', 'listar', 'primeros', 'resumen'],
 }
 
@@ -71,6 +75,28 @@ export function generateFallbackSql(question, columns, dtypes = {}) {
     return `SELECT ${parts.join(', ')} FROM data`
   }
 
+  const isDateCol = (c) => String(dtypes?.[c] || '').toLowerCase() === 'datetime'
+
+  // Serie de tiempo: agrupa una columna de fecha por mes o año (strftime deja la etiqueta ordenable: 2025-03)
+  const timeSql = (dateCol, grain) => {
+    const d = quoteIdent(dateCol)
+    const bucket = `strftime(date_trunc('${grain}', ${d}), '${grain === 'year' ? '%Y' : '%Y-%m'}')`
+    const valueCol = matched.find((c) => isNumericCol(c, dtypes) && !isIdColumn(c)) ?? measures[0]
+    let metric = 'COUNT(*) AS "conteo"'
+    if (valueCol && !hasWord(q, INTENT.count)) {
+      const [fn, alias] = hasWord(q, INTENT.avg) ? ['AVG', 'promedio']
+        : hasWord(q, INTENT.max) ? ['MAX', 'max']
+        : hasWord(q, INTENT.min) ? ['MIN', 'min']
+        : ['SUM', 'total']
+      metric = `${fn}(${quoteIdent(valueCol)}) AS ${quoteIdent(`${alias}_${valueCol}`)}`
+    }
+    return `SELECT ${bucket} AS ${quoteIdent(grain === 'year' ? 'año' : 'mes')}, ${metric} FROM data WHERE ${d} IS NOT NULL GROUP BY 1 ORDER BY 1`
+  }
+
+  const grain = hasWord(q, INTENT.month) ? 'month' : hasWord(q, INTENT.year) ? 'year' : hasWord(q, INTENT.trend) ? 'month' : null
+  const dateCol = matched.find(isDateCol) ?? columns.find(isDateCol)
+  if (grain && dateCol) return timeSql(dateCol, grain)
+
   if (hasWord(q, INTENT.avg)) return aggregate('AVG', 'promedio', { numericOnly: true })
   if (hasWord(q, INTENT.sum)) return aggregate('SUM', 'total', { numericOnly: true })
   if (hasWord(q, INTENT.max)) return aggregate('MAX', 'max', { numericOnly: false })
@@ -82,6 +108,22 @@ export function generateFallbackSql(question, columns, dtypes = {}) {
       return `SELECT ${col}, COUNT(*) AS "conteo" FROM data GROUP BY ${col} ORDER BY "conteo" DESC LIMIT 20`
     }
     return 'SELECT COUNT(*) AS "total_filas" FROM data'
+  }
+
+  // "haz un gráfico de la cantidad de lunas por planeta": devuelve los datos a graficar (la app dibuja el gráfico)
+  if (hasWord(q, INTENT.chart)) {
+    const cat = matched.find((c) => !isNumericCol(c, dtypes) && !isDateCol(c))
+    const num = matched.find((c) => isNumericCol(c, dtypes) && !isIdColumn(c))
+    const mentionedDate = matched.find(isDateCol)
+    if (mentionedDate) return timeSql(mentionedDate, 'month')
+    if (cat && num) {
+      const [fn, alias] = hasWord(q, ['cantidad', 'total', 'suma', 'sum']) ? ['SUM', 'total'] : ['AVG', 'promedio']
+      const name = quoteIdent(`${alias}_${num}`)
+      return `SELECT ${quoteIdent(cat)}, ${fn}(${quoteIdent(num)}) AS ${name} FROM data WHERE ${quoteIdent(cat)} IS NOT NULL GROUP BY ${quoteIdent(cat)} ORDER BY ${name} DESC LIMIT 20`
+    }
+    if (cat) return pieSql(cat)
+    if (num) return `SELECT ${quoteIdent(num)} FROM data WHERE ${quoteIdent(num)} IS NOT NULL`
+    return null
   }
 
   if (hasWord(q, INTENT.distribution)) {

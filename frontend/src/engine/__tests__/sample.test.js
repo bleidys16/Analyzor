@@ -55,8 +55,8 @@ describe('sugerencias del chat', () => {
     expect(suggestions).toEqual([
       'Promedio de cantidad por ciudad',
       '¿Cuántos registros hay por ciudad?',
+      'Evolución de cantidad por mes',
       '¿Cuál es el máximo de precio_unitario?',
-      'Suma de cantidad por categoria',
       'Gráfico de torta de ciudad',
       'Muéstrame los primeros datos',
     ])

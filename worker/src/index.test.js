@@ -164,6 +164,16 @@ describe("/api/ask: datos o conversación", () => {
     expect(messages[0].content).toContain('"precio" (float)') // el dataset está en el sistema
   })
 
+  it("el prompt trata los pedidos de gráficos como consultas a los datos, nunca como código para el usuario", async () => {
+    const fetchImpl = groqOk("SELECT 1")
+    await handle(ask({ question: "haz un gráfico de la cantidad de lunas por planeta" }), ENV, fetchImpl)
+    const system = JSON.parse(fetchImpl.mock.calls[0][1].body).messages[0].content
+    expect(system).toContain("GRÁFICOS")
+    expect(system).toContain("NUNCA respondas con código de matplotlib")
+    expect(system).toContain("date_trunc('month'")
+    expect(system).toContain("haz un gráfico de la cantidad de lunas en los planetas") // ejemplo guía
+  })
+
   it.each([
     ["más de 6 mensajes", { history: Array.from({ length: 7 }, () => ({ role: "user", content: "x" })) }],
     ["rol inválido", { history: [{ role: "system", content: "x" }] }],

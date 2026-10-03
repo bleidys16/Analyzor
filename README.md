@@ -16,7 +16,7 @@
 - **Chat con IA que responde cualquier cosa.** Si preguntas por tus datos, la IA escribe el SQL, se ejecuta en tu navegador y te explica el resultado con un gráfico. Si conversas o preguntas otra cosa (saludos, programación, cultura general, "¿de qué trata mi dataset?"), responde en texto, con bloques de código y memoria de la conversación.
 - **Respaldo local.** Si la IA no está disponible o alcanzó su límite, un motor de reglas resuelve las preguntas comunes sobre tus datos (promedio, suma, máximo, conteos, agrupaciones…) y avisa al usuario.
 - **Perfilado automático.** Media, mediana, desviación, cuartiles, correlaciones, calidad de datos y anomalías.
-- **Gráficos** elegidos según el resultado de cada consulta.
+- **Gráficos en el chat.** Barras, líneas, dona, dispersión e histograma, elegidos según el resultado de cada consulta. Las fechas se dibujan como líneas, y puedes pedir el tipo con tus palabras («en barras», «en líneas», «en torta»). Cada gráfico se descarga como imagen PNG.
 - **Reporte PDF** generado en el navegador.
 - **CSV de Excel en español.** Detecta la codificación (Latin-1), el separador `;` y la coma decimal.
 - **Datos de ejemplo** de una tienda (500 ventas de 2025) para probarlo sin subir nada.

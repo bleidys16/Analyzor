@@ -89,7 +89,7 @@ describe('chat', () => {
     expect(reply).toMatchObject({ role: 'assistant', dataset_id: ds.id })
     expect(reply.sql_generated).toContain('GROUP BY')
     expect(reply.content).toContain('Bogota')
-    expect(reply.query_result.chart.type).toBe('pie')
+    expect(reply.query_result.chart.type).toBe('bar') // un promedio no es parte de un total: barras, no dona
 
     const history = await getHistory(ds.id)
     expect(history.map((m) => m.role)).toEqual(['user', 'assistant'])
