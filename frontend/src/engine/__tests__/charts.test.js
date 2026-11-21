@@ -239,4 +239,23 @@ describe('sugerencias del chat con gráficos', () => {
     const noDates = { columns: ['ciudad', 'cantidad'], dtypes: { ciudad: 'string', cantidad: 'integer' } }
     expect(buildSuggestions(noDates, analysis).join(' ')).not.toMatch(/por mes/)
   })
+
+  it('con columna de monto y fechas sugiere Total por mes y Top 5', async () => {
+    const dsMonto = {
+      columns: ['fecha', 'categoria', 'monto'],
+      dtypes: { fecha: 'datetime', categoria: 'string', monto: 'float' },
+    }
+    const analysisMonto = { data_quality: { categoria: { unique_count: 5 } } }
+    const suggestions = buildSuggestions(dsMonto, analysisMonto)
+    expect(suggestions).toContain('Total de monto por mes')
+    expect(suggestions).toContain('Top 5 categoria con mayor monto')
+  })
+
+  it('resuelve consultas tipo "Top 5 ... con mayor ..." mediante reglas sin IA', async () => {
+    const ds = await uploadDataset(csvFile('ventas-top5.csv', VENTAS))
+    const reply = await sendMessage(ds.id, 'Top 5 ciudad con mayor cantidad', { llm: NO_LLM })
+    expect(reply.sql_generated).toMatch(/LIMIT 5/i)
+    expect(reply.query_result.data.length).toBeGreaterThan(0)
+    expect(reply.query_result.data.length).toBeLessThanOrEqual(5)
+  })
 })

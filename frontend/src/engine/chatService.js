@@ -23,8 +23,8 @@ const guidance = (columns, { aiDown }) =>
 // Si la IA alcanza su límite de uso se sigue respondiendo con reglas, y se avisa al usuario
 const limitNotice = (limit) =>
   limit.daily
-    ? 'ℹ️ Alcanzaste el límite diario de preguntas con IA; respondí con el motor de reglas básico. Vuelve mañana para usar la IA.'
-    : 'ℹ️ Estás preguntando muy rápido; respondí con el motor de reglas básico. Espera un momento para volver a usar la IA.'
+    ? 'Alcanzaste el límite diario de preguntas con IA; respondí con el motor de reglas básico. Vuelve mañana para usar la IA.'
+    : 'Estás preguntando muy rápido; respondí con el motor de reglas básico. Espera un momento para volver a usar la IA.'
 
 // Anota por qué la IA no se pudo usar en esta pregunta (ctx vive solo durante un sendMessage)
 function noteLlmError(err, ctx, what) {

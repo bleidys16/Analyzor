@@ -91,13 +91,186 @@ function MessageContent({ text }) {
 }
 
 const SUGGESTIONS = [
-  '¿Cuál es el promedio de los datos?',
+  'Muéstrame los primeros datos',
   '¿Cuáles son los valores máximos y mínimos?',
   '¿Cómo se distribuyen los datos?',
   'Muéstrame un resumen general',
   '¿Hay alguna correlación entre columnas?',
-  'Gráfico de torta por género',
 ]
+
+function formatCell(val) {
+  if (val === null || val === undefined) return '-'
+  if (typeof val === 'number') {
+    return new Intl.NumberFormat('es', { maximumFractionDigits: 2 }).format(val)
+  }
+  return String(val)
+}
+
+function QueryResultView({ queryResult, hasChart = false }) {
+  const [copiedType, setCopiedType] = useState(null)
+  const { data = [], columns = [] } = queryResult || {}
+
+  if (!data || data.length === 0) return null
+
+  const cols = columns.length > 0 ? columns : Object.keys(data[0] || {})
+  const previewRows = data.slice(0, 5)
+
+  const copyAsTsv = async () => {
+    try {
+      const headerLine = cols.join('\t')
+      const rowLines = data.map((row) => cols.map((c) => {
+        const v = row[c]
+        if (v === null || v === undefined) return ''
+        return String(v).replace(/[\t\n\r]/g, ' ')
+      }).join('\t'))
+      const text = [headerLine, ...rowLines].join('\n')
+      await navigator.clipboard.writeText(text)
+      setCopiedType('tsv')
+      setTimeout(() => setCopiedType(null), 2000)
+    } catch (err) {
+      console.warn('Error al copiar TSV:', err)
+    }
+  }
+
+  const copyAsCsv = async () => {
+    try {
+      const escapeCell = (v) => {
+        if (v === null || v === undefined) return ''
+        const s = String(v)
+        if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+          return `"${s.replace(/"/g, '""')}"`
+        }
+        return s
+      }
+      const headerLine = cols.map(escapeCell).join(',')
+      const rowLines = data.map((row) => cols.map((c) => escapeCell(row[c])).join(','))
+      const text = [headerLine, ...rowLines].join('\n')
+      await navigator.clipboard.writeText(text)
+      setCopiedType('csv')
+      setTimeout(() => setCopiedType(null), 2000)
+    } catch (err) {
+      console.warn('Error al copiar CSV:', err)
+    }
+  }
+
+  return (
+    <div style={{ marginTop: '10px' }}>
+      {!hasChart && (
+        <div style={{
+          border: '1px solid var(--card-border)',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          background: 'var(--code-bg)',
+          marginBottom: '8px',
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '6px 10px',
+            borderBottom: '1px solid var(--card-border)',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+          }}>
+            <span style={{ fontWeight: 600 }}>Vista de datos ({data.length} filas)</span>
+            <span>{data.length > 5 ? 'Mostrando primeras 5' : `${data.length} registros`}</span>
+          </div>
+          <div style={{ overflowX: 'auto', maxHeight: '160px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px', fontFamily: '"Geist", sans-serif' }}>
+              <thead>
+                <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--card-border)' }}>
+                  {cols.map((col, i) => (
+                    <th key={i} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, rowIdx) => (
+                  <tr key={rowIdx} style={{ borderBottom: '1px solid var(--card-border)' }}>
+                    {cols.map((col, colIdx) => (
+                      <td key={colIdx} style={{ padding: '5px 8px', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+                        {formatCell(row[col])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        <button
+          onClick={copyAsTsv}
+          title="Copiar tabla en formato TSV listo para pegar en Excel o Google Sheets"
+          aria-label="Copiar para Excel"
+          style={{
+            background: copiedType === 'tsv' ? 'var(--accent-strong)' : 'var(--code-bg)',
+            border: '1px solid var(--card-border)',
+            borderRadius: '6px',
+            color: copiedType === 'tsv' ? 'white' : 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '11px',
+            padding: '3px 8px',
+            fontFamily: 'inherit',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {copiedType === 'tsv' ? (
+              <polyline points="20 6 9 17 4 12" />
+            ) : (
+              <>
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </>
+            )}
+          </svg>
+          {copiedType === 'tsv' ? '¡Copiado para Excel!' : 'Copiar para Excel'}
+        </button>
+
+        <button
+          onClick={copyAsCsv}
+          title="Copiar datos filtrados como CSV"
+          aria-label="Copiar como CSV"
+          style={{
+            background: copiedType === 'csv' ? 'var(--accent-strong)' : 'none',
+            border: '1px solid var(--card-border)',
+            borderRadius: '6px',
+            color: copiedType === 'csv' ? 'white' : 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '11px',
+            padding: '3px 8px',
+            fontFamily: 'inherit',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {copiedType === 'csv' ? (
+              <polyline points="20 6 9 17 4 12" />
+            ) : (
+              <>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </>
+            )}
+          </svg>
+          {copiedType === 'csv' ? '¡CSV copiado!' : 'Copiar CSV'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function ChatMessages({ messages = [], sending = false, onSend, onRegenerate, onClearChat, suggestions = SUGGESTIONS }) {
   const validMessages = (messages || []).filter(msg => msg && msg.role)
@@ -305,6 +478,12 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
                 )}
                 {msg.role === 'assistant' && msg.query_result?.chart && (
                   <ChartRenderer chartConfig={msg.query_result.chart} />
+                )}
+                {msg.role === 'assistant' && msg.query_result?.data && msg.query_result.data.length > 0 && (
+                  <QueryResultView
+                    queryResult={msg.query_result}
+                    hasChart={Boolean(msg.query_result.chart && msg.query_result.chart.type !== 'text')}
+                  />
                 )}
                 {msg.role === 'assistant' && onRegenerate && (
                   <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '6px' }}>

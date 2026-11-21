@@ -202,8 +202,14 @@ export default function InteractiveTable({
             padding: '2px 8px',
             borderRadius: '4px',
             fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
           }}>
-            ⚡ {execTime.toFixed(1)} ms
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            {execTime.toFixed(1)} ms
           </span>
         </div>
       </div>
@@ -382,7 +388,10 @@ export default function InteractiveTable({
         fontSize: '11px',
         color: 'var(--text-muted)',
       }}>
-        <span>💡 Tip: Haz clic en cualquier cabecera de columna para ordenar en tiempo real con DuckDB (&lt; 3 ms)</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontWeight: 600, color: 'var(--accent-text)', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.05em' }}>Tip:</span>
+          Haz clic en cualquier cabecera de columna para ordenar en tiempo real con DuckDB (&lt; 3 ms)
+        </span>
         {columns.length > 0 && onAskAboutColumn && (
           <span style={{ cursor: 'pointer', color: 'var(--accent-text)' }} onClick={() => onAskAboutColumn(columns[0])}>
             Consultar sobre {columns[0]} →

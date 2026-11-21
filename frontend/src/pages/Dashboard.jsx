@@ -739,18 +739,6 @@ export default function Dashboard() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
               <span>{isChatOpen ? 'Ocultar Asistente' : 'Abrir Asistente'}</span>
-              {messages.length > 0 && (
-                <span style={{
-                  background: 'var(--accent-strong)',
-                  color: '#ffffff',
-                  borderRadius: '10px',
-                  padding: '1px 6px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                }}>
-                  {messages.length}
-                </span>
-              )}
             </button>
           </div>
 
@@ -798,7 +786,9 @@ export default function Dashboard() {
                   flexShrink: 0,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: 'var(--accent)', fontSize: '15px' }}>💬</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
                     <h2 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
                       Asistente IA
                     </h2>
@@ -878,7 +868,11 @@ export default function Dashboard() {
                         suggestions={suggestions}
                       />
                       <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
-                        <ChatInput onSend={handleSendMessage} sending={sending} />
+                        <ChatInput
+                          onSend={handleSendMessage}
+                          sending={sending}
+                          columns={dataset?.columns || []}
+                        />
                       </div>
                     </div>
                   )}
@@ -909,7 +903,9 @@ export default function Dashboard() {
               color: 'var(--text-muted)',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
             }}>
-              <span style={{ color: '#eab308', fontSize: '13px' }}>⚡</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
               <span>
                 Procesado en <strong style={{ color: 'var(--text-main)' }}>{telemetryTime > 0 ? `${telemetryTime.toFixed(1)} ms` : '< 3.0 ms'}</strong> en tu navegador (<strong style={{ color: 'var(--text-main)' }}>0 bytes</strong> enviados a servidores externos)
               </span>

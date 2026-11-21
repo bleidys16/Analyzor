@@ -77,6 +77,29 @@ export function generateFallbackSql(question, columns, dtypes = {}) {
 
   const isDateCol = (c) => String(dtypes?.[c] || '').toLowerCase() === 'datetime'
 
+  // Top N por categoría y métrica (ej. "Top 5 categorías con mayor monto" o "Top 5 ciudad con mayor cantidad")
+  const topMatch = q.match(/\btop\s*(\d+)\b/i)
+  if (topMatch) {
+    const limitN = parseInt(topMatch[1], 10) || 5
+    const groupCol = matched.find((c) => !isNumericCol(c, dtypes) && !isDateCol(c))
+    const valueCol = matched.find((c) => isNumericCol(c, dtypes) && !isIdColumn(c)) ?? measures[0]
+    if (groupCol && valueCol) {
+      const g = quoteIdent(groupCol)
+      const v = quoteIdent(valueCol)
+      const fn = hasWord(q, INTENT.avg) ? 'AVG' : 'SUM'
+      const alias = quoteIdent(`${fn === 'AVG' ? 'promedio' : 'total'}_${valueCol}`)
+      return `SELECT ${g}, ${fn}(${v}) AS ${alias} FROM data WHERE ${g} IS NOT NULL GROUP BY ${g} ORDER BY ${alias} DESC LIMIT ${limitN}`
+    }
+    if (groupCol) {
+      const g = quoteIdent(groupCol)
+      return `SELECT ${g}, COUNT(*) AS "conteo" FROM data WHERE ${g} IS NOT NULL GROUP BY ${g} ORDER BY "conteo" DESC LIMIT ${limitN}`
+    }
+    if (valueCol) {
+      const v = quoteIdent(valueCol)
+      return `SELECT * FROM data WHERE ${v} IS NOT NULL ORDER BY ${v} DESC LIMIT ${limitN}`
+    }
+  }
+
   // Serie de tiempo: agrupa una columna de fecha por mes o año (strftime deja la etiqueta ordenable: 2025-03)
   const timeSql = (dateCol, grain) => {
     const d = quoteIdent(dateCol)

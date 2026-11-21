@@ -22,12 +22,30 @@ export function buildSuggestions(dataset, analysis) {
   const hasDate = columns.some((c) => dtypes[c] === 'datetime')
   const suggestions = []
 
-  if (num && cat) suggestions.push(`Promedio de ${num} por ${cat}`)
-  if (cat) suggestions.push(`¿Cuántos registros hay por ${cat}?`)
-  if (num && hasDate) suggestions.push(`Evolución de ${num} por mes`)
-  if (num2 || num) suggestions.push(`¿Cuál es el máximo de ${num2 || num}?`)
-  if (cat) suggestions.push(`Gráfico de torta de ${cat}`)
-  if (num && cat2) suggestions.push(`Suma de ${num} por ${cat2}`)
+  // Columnas con semántica explícita de monto o ventas
+  const montoCol = numeric.find((c) => /^(monto|ventas?|ingresos?|total|revenue)$/i.test(c))
+
+  if (montoCol && hasDate) suggestions.push(`Total de ${montoCol} por mes`)
+  if (montoCol && cat) suggestions.push(`Top 5 ${cat} con mayor ${montoCol}`)
+
+  if (num && cat && !suggestions.some((s) => s.includes(`por ${cat}`))) {
+    suggestions.push(`Promedio de ${num} por ${cat}`)
+  }
+  if (cat && !suggestions.some((s) => s.startsWith('¿Cuántos'))) {
+    suggestions.push(`¿Cuántos registros hay por ${cat}?`)
+  }
+  if (num && hasDate && !suggestions.some((s) => s.includes('por mes'))) {
+    suggestions.push(`Evolución de ${num} por mes`)
+  }
+  if (num2 || (num && !montoCol)) {
+    suggestions.push(`¿Cuál es el máximo de ${num2 || num}?`)
+  }
+  if (cat && !suggestions.some((s) => s.includes('torta'))) {
+    suggestions.push(`Gráfico de torta de ${cat}`)
+  }
+  if (num && cat2) {
+    suggestions.push(`Suma de ${num} por ${cat2}`)
+  }
 
   // Máximo 6: las 5 primeras y siempre la pregunta genérica al final
   return [...suggestions.slice(0, 5), 'Muéstrame los primeros datos']
