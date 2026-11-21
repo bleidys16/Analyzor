@@ -54,7 +54,7 @@ export default function StatsChart() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {statsDistribution.map((item, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
               <span style={{
                 width: '8px', height: '8px', borderRadius: '2px',
                 background: barColors[i % barColors.length], flexShrink: 0,

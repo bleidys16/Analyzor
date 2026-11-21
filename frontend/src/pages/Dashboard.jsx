@@ -35,6 +35,7 @@ export default function Dashboard() {
   })
   const [allDatasets, setAllDatasets] = useState([])
   const [showDatasetList, setShowDatasetList] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
 
   const suggestions = useMemo(() => buildSuggestions(dataset, analysis), [dataset, analysis])
 
@@ -105,6 +106,7 @@ export default function Dashboard() {
   }, [datasetId, setCurrentDataset])
 
   const handleExportPDF = async () => {
+    setExportingPDF(true)
     try {
       const response = await exportAPI.exportPDF(datasetId)
       const url = window.URL.createObjectURL(new Blob([response.data]))
@@ -117,6 +119,8 @@ export default function Dashboard() {
       window.URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Error exportando PDF:', err)
+    } finally {
+      setExportingPDF(false)
     }
   }
 
@@ -156,12 +160,14 @@ export default function Dashboard() {
           position: 'relative',
           zIndex: 1,
         }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
+          <div style={{ textAlign: 'center' }} role="status" aria-live="polite">
+            <div aria-hidden="true" style={{
               width: '40px',
               height: '40px',
-              border: '3px solid var(--card-border)',
-              borderTop: '3px solid #ef4444',
+              borderWidth: '3px',
+              borderStyle: 'solid',
+              borderColor: 'var(--card-border)',
+              borderTopColor: 'var(--accent)',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 20px',
@@ -169,6 +175,51 @@ export default function Dashboard() {
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Cargando dataset...</p>
           </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </>
+    )
+  }
+
+  // El estado de error debe revisarse antes que "analizando": si la carga del dataset falló
+  // (ej. un ID inexistente), `analysis` nunca deja de ser null y este chequeo se quedaría
+  // mostrando el spinner para siempre en lugar de la pantalla de error ya diseñada.
+  if (error) {
+    return (
+      <>
+        <TopographicBackground isDark={isDarkMode} />
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f8fafc',
+          fontFamily: '"Space Grotesk", sans-serif',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }} role="alert" aria-live="assertive">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" style={{ margin: '0 auto 20px' }} aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p style={{ color: 'var(--accent-text)', fontSize: '16px', fontWeight: 600, marginBottom: '20px' }}>{error}</p>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                padding: '10px 20px',
+                background: 'var(--accent-strong)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '14px',
+              }}
+            >
+              Volver a Inicio
+            </button>
+          </div>
         </div>
       </>
     )
@@ -188,12 +239,14 @@ export default function Dashboard() {
           position: 'relative',
           zIndex: 1,
         }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
+          <div style={{ textAlign: 'center' }} role="status" aria-live="polite">
+            <div aria-hidden="true" style={{
               width: '40px',
               height: '40px',
-              border: '3px solid #e2e8f0',
-              borderTop: '3px solid #ef4444',
+              borderWidth: '3px',
+              borderStyle: 'solid',
+              borderColor: '#e2e8f0',
+              borderTopColor: '#ef4444',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 20px',
@@ -201,48 +254,6 @@ export default function Dashboard() {
             <p style={{ color: '#64748b', fontSize: '14px' }}>Analizando tu dataset...</p>
           </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      </>
-    )
-  }
-
-  if (error) {
-    return (
-      <>
-        <TopographicBackground isDark={isDarkMode} />
-        <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f8fafc',
-          fontFamily: '"Space Grotesk", sans-serif',
-          position: 'relative',
-          zIndex: 1,
-        }}>
-          <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" style={{ margin: '0 auto 20px' }}>
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <p style={{ color: '#ef4444', fontSize: '16px', fontWeight: 600, marginBottom: '20px' }}>{error}</p>
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                padding: '10px 20px',
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '14px',
-              }}
-            >
-              Volver a Inicio
-            </button>
-          </div>
         </div>
       </>
     )
@@ -272,7 +283,7 @@ export default function Dashboard() {
             transition: all 0.2s ease;
           }
           .tab-btn.active {
-            color: var(--accent);
+            color: var(--accent-text);
             border-bottom-color: var(--accent);
           }
           .tab-btn:hover {
@@ -315,7 +326,7 @@ export default function Dashboard() {
           }
           .btn-accent {
             padding: 10px 16px;
-            background: var(--accent);
+            background: var(--accent-strong);
             color: white;
             border: none;
             border-radius: 8px;
@@ -326,10 +337,13 @@ export default function Dashboard() {
             align-items: center;
             gap: 6px;
             transition: all 0.2s ease;
-            opacity: 0.9;
           }
           .btn-accent:hover {
-            opacity: 1;
+            background: var(--accent-hover);
+          }
+          .btn-accent:disabled {
+            cursor: wait;
+            opacity: 0.7;
           }
           .modal-close {
             background: none;
@@ -379,70 +393,104 @@ export default function Dashboard() {
             background: var(--accent-glow);
             color: var(--accent);
           }
+
+          .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 24px;
+          }
+          .dash-header-title {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+          }
+          .dash-header-title h1 {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .dash-header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .scroll-hint {
+            display: none;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+          }
+          @media (max-width: 640px) {
+            .dash-header-title h1 { font-size: 20px; }
+            .dash-header-actions { width: 100%; }
+            .dash-header-actions .btn-ghost,
+            .dash-header-actions .btn-accent { flex: 1; justify-content: center; }
+            .scroll-hint { display: block; }
+          }
         `}</style>
 
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           
           {/* HEADER */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingBottom: '24px',
-            borderBottom: '1px solid var(--card-border)',
-            marginBottom: '24px',
-          }}>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                marginBottom: '8px',
-              }}>
-                <button
-                  onClick={() => navigate('/')}
-                  className="btn-icon"
-                  title="Volver"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12" />
-                    <polyline points="12 19 5 12 12 5" />
-                  </svg>
-                </button>
-                <h1 style={{ 
-                  margin: 0, 
-                  fontSize: '28px', 
-                  fontWeight: 700, 
+          <div className="dash-header">
+            <div className="dash-header-title">
+              <button
+                onClick={() => navigate('/')}
+                className="btn-icon"
+                title="Volver"
+                aria-label="Volver a inicio"
+                style={{ flexShrink: 0 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>
+              </button>
+              <div style={{ minWidth: 0 }}>
+                <h1 title={dataset?.name} style={{
+                  margin: 0,
+                  fontSize: '28px',
+                  fontWeight: 700,
                   color: 'var(--text-main)',
                   letterSpacing: '-0.5px',
                 }}>
                   {dataset?.name}
                 </h1>
+                <p style={{
+                  margin: '8px 0 0 0',
+                  color: 'var(--text-muted)',
+                  fontSize: '12px',
+                  display: 'flex',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    {dataset?.rows_count?.toLocaleString()} filas
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>•</span>
+                  <span>{dataset?.columns?.length} columnas</span>
+                  <span style={{ color: 'var(--text-muted)' }}>•</span>
+                  <span>{(dataset?.file_size / 1024).toFixed(2)} KB</span>
+                </p>
               </div>
-              <p style={{ 
-                margin: '8px 0 0 0', 
-                color: 'var(--text-muted)', 
-                fontSize: '12px',
-                display: 'flex',
-                gap: '12px',
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                  {dataset?.rows_count?.toLocaleString()} filas
-                </span>
-                <span style={{ color: 'var(--text-muted)' }}>•</span>
-                <span>{dataset?.columns?.length} columnas</span>
-                <span style={{ color: 'var(--text-muted)' }}>•</span>
-                <span>{(dataset?.file_size / 1024).toFixed(2)} KB</span>
-              </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="dash-header-actions">
               <button
                 onClick={openDatasetList}
                 className="btn-ghost"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                 </svg>
                 Historial
@@ -451,14 +499,15 @@ export default function Dashboard() {
               <button
                 onClick={handleExportPDF}
                 className="btn-accent"
+                disabled={exportingPDF}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14 2 14 8 20 8"/>
                   <line x1="16" y1="13" x2="8" y2="13"/>
                   <line x1="16" y1="17" x2="8" y2="17"/>
                 </svg>
-                PDF
+                {exportingPDF ? 'Generando…' : 'PDF'}
               </button>
             </div>
           </div>
@@ -502,7 +551,7 @@ export default function Dashboard() {
           {/* CONTENT */}
           {activeTab === 'analysis' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <DynamicCharts dataset={dataset} analysis={analysis} />
+              <DynamicCharts datasetId={datasetId} dataset={dataset} analysis={analysis} />
             </div>
           )}
 
@@ -545,7 +594,7 @@ export default function Dashboard() {
                   <thead>
                     <tr style={{ background: 'var(--code-bg)', borderBottom: '1px solid var(--card-border)' }}>
                       {(dataset?.columns || []).map(col => (
-                        <th key={col} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        <th key={col} scope="col" style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>
                           {col}
                         </th>
                       ))}
@@ -564,6 +613,7 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
+              <p className="scroll-hint">← Desliza para ver más columnas →</p>
             </div>
           )}
         </div>
@@ -618,8 +668,12 @@ export default function Dashboard() {
               <button
                 onClick={() => setShowDatasetList(false)}
                 className="modal-close"
+                aria-label="Cerrar"
               >
-                ✕
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
 
@@ -644,11 +698,11 @@ export default function Dashboard() {
                     }} />
                   )}
 
-                  <h4 style={{
+                  <h3 style={{
                     margin: '0 0 6px 0',
                     fontSize: '14px',
                     fontWeight: 700,
-                    color: ds.id === datasetId ? 'var(--accent)' : 'var(--text-main)',
+                    color: ds.id === datasetId ? 'var(--accent-text)' : 'var(--text-main)',
                   }}>
                     {ds.name}
                     {ds.id === datasetId && (
@@ -656,7 +710,7 @@ export default function Dashboard() {
                         marginLeft: '8px',
                         fontSize: '10px',
                         fontWeight: 600,
-                        background: 'var(--accent)',
+                        background: 'var(--accent-strong)',
                         color: 'white',
                         padding: '2px 8px',
                         borderRadius: '10px',
@@ -664,7 +718,7 @@ export default function Dashboard() {
                         actual
                       </span>
                     )}
-                  </h4>
+                  </h3>
                   <p style={{
                     margin: 0,
                     fontSize: '12px',

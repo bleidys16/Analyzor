@@ -43,6 +43,7 @@ export default function ChatInput({ onSend, sending = false }) {
           ref={inputRef}
           type="text"
           placeholder="Escribe tu pregunta..."
+          aria-label="Escribe tu pregunta sobre el dataset"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -63,12 +64,13 @@ export default function ChatInput({ onSend, sending = false }) {
         <button
           onClick={handleSend}
           disabled={sending || !input.trim()}
+          aria-label="Enviar pregunta"
           style={{
             width: '36px',
             height: '36px',
             borderRadius: '8px',
             border: 'none',
-            background: input.trim() && !sending ? 'var(--accent)' : 'var(--card-border)',
+            background: input.trim() && !sending ? 'var(--accent-strong)' : 'var(--card-border)',
             color: input.trim() && !sending ? 'white' : 'var(--text-muted)',
             cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
             display: 'flex',
@@ -79,16 +81,18 @@ export default function ChatInput({ onSend, sending = false }) {
           }}
         >
           {sending ? (
-            <div style={{
+            <div aria-hidden="true" style={{
               width: '14px',
               height: '14px',
-              border: '2px solid white',
-              borderTop: '2px solid transparent',
+              borderWidth: '2px',
+              borderStyle: 'solid',
+              borderColor: 'white',
+              borderTopColor: 'transparent',
               borderRadius: '50%',
               animation: 'chat-spin 0.6s linear infinite',
             }} />
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>

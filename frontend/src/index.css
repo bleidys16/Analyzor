@@ -10,15 +10,22 @@
   /* Light mode variables */
   --bg-color: #f0f0f2;
   --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-muted: #52606d;
   --card-bg: #f8fafc;
   --card-border: rgba(0, 0, 0, 0.08);
   --accent: #ef4444;
-  /* Vibrant Red */
+  /* Vibrant Red: decorativo (iconos, bordes, gráficos). No usar como texto ni como fondo con texto encima: no pasa contraste AA. */
   --accent-glow: rgba(239, 68, 68, 0.25);
-  --accent-hover: #dc2626;
+  /* Mismo rojo, oscurecido lo justo para pasar 4.5:1 como texto sobre los fondos claros/oscuros de la app */
+  --accent-text: #c0392b;
+  /* Mismo rojo, oscurecido para pasar 4.5:1 con texto blanco encima (botones, badges) */
+  --accent-strong: #dc2626;
+  --accent-hover: #b91c1c;
   --code-bg: #f1f5f9;
   --chart-bg: #ffffff;
+  /* Color de alerta/anomalía, separado del rojo de acción primaria */
+  --warning: #b45309;
+  --warning-glow: rgba(180, 83, 9, 0.12);
 }
 
 [data-theme='dark'] {
@@ -31,9 +38,14 @@
   --accent: #ef4444;
   /* Vibrant Red */
   --accent-glow: rgba(239, 68, 68, 0.25);
-  --accent-hover: #dc2626;
+  /* En modo oscuro el rojo base ya pasa 4.5:1 como texto; no hace falta oscurecerlo */
+  --accent-text: #ef4444;
+  --accent-strong: #dc2626;
+  --accent-hover: #b91c1c;
   --code-bg: #090d16;
   --chart-bg: #121826;
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.12);
 }
 
 html {

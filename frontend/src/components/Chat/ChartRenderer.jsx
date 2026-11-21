@@ -152,7 +152,7 @@ export default function ChartRenderer({ chartConfig }) {
           ))}
         </div>
       )}
-      {error && <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--accent)' }}>{error}</p>}
+      {error && <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--accent-text)' }}>{error}</p>}
     </div>
   )
 }

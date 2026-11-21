@@ -4,7 +4,20 @@ import { datasetsAPI } from '../api/datasets'
 import TopographicBackground from '../components/TopographicBackground'
 import TechTicker from '../components/TechTicker'
 import StatsChart from '../components/StatsChart'
+import ChartRenderer from '../components/Chat/ChartRenderer'
 import { latestPerDay } from '../utils/datasets'
+
+// Gráfico de ejemplo fijo: demuestra el mecanismo real (pregunta -> gráfico), no llama al motor.
+const DEMO_CHART = {
+  type: 'bar',
+  title: 'Ingresos totales por categoría',
+  data: [
+    { name: 'Electrónica', value: 42800 },
+    { name: 'Hogar', value: 31200 },
+    { name: 'Ropa', value: 24600 },
+    { name: 'Deportes', value: 18900 },
+  ],
+}
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -134,16 +147,11 @@ export default function Landing() {
       {/* Theme Toggle Button */}
       <button
         onClick={() => setIsDarkMode(!isDarkMode)}
+        className="theme-toggle"
         style={{
-          position: 'fixed',
-          bottom: '30px',
-          right: '30px',
-          zIndex: 999,
           background: 'var(--card-bg)',
           border: '1px solid var(--card-border)',
           borderRadius: '50%',
-          width: '50px',
-          height: '50px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -155,9 +163,10 @@ export default function Landing() {
         onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
         onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
         title="Alternar tema"
+        aria-label={isDarkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
       >
         {isDarkMode ? (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <circle cx="12" cy="12" r="5" />
             <line x1="12" y1="1" x2="12" y2="3" />
             <line x1="12" y1="21" x2="12" y2="23" />
@@ -169,7 +178,7 @@ export default function Landing() {
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
           </svg>
         ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
           </svg>
         )}
@@ -179,16 +188,24 @@ export default function Landing() {
 
       {/* Styles block for hover, animations and media queries */}
       <style>{`
-        @keyframes pulse-accent {
-          0% { box-shadow: 0 0 0 0 var(--accent-glow); }
-          70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        .theme-toggle {
+          position: fixed;
+          bottom: 30px;
+          right: 30px;
+          z-index: 999;
+          width: 50px;
+          height: 50px;
         }
-        .glow-bullet {
-          animation: pulse-accent 2s infinite;
+        @media (max-width: 640px) {
+          .theme-toggle {
+            width: 40px;
+            height: 40px;
+            bottom: 16px;
+            right: 16px;
+          }
         }
         .btn-primary {
-          background: var(--accent);
+          background: var(--accent-strong);
           color: #ffffff;
           border: none;
           padding: 12px 28px;
@@ -329,7 +346,7 @@ export default function Landing() {
               position: 'relative',
               zIndex: 1,
             }}>
-              Consultas SQL, perfilado automático y análisis estadístico avanzado impulsado por IA.
+              Pregunta en lenguaje natural, perfilado automático y análisis estadístico avanzado — sin escribir una sola línea de SQL.
             </p>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(10px, 2vw, 15px)', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
@@ -366,12 +383,12 @@ export default function Landing() {
             borderRadius: '100px',
             padding: '4px 12px',
           }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent)', letterSpacing: '1px' }}>FUNCIONALIDADES</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent-text)', letterSpacing: '1px' }}>FUNCIONALIDADES</span>
           </div>
         </div>
 
         <h2 style={{
-          fontSize: '44px',
+          fontSize: 'clamp(28px, 5vw, 44px)',
           fontWeight: 700,
           textAlign: 'center',
           marginBottom: '50px',
@@ -385,7 +402,7 @@ export default function Landing() {
           {/* CARD 1: CSV INGEST */}
           <div id="upload-section" className="feature-card col-7" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ marginBottom: '30px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', marginBottom: '15px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-text)', marginBottom: '15px' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
@@ -405,6 +422,15 @@ export default function Landing() {
               onDragOver={handleDrag}
               onDrop={handleDrop}
               onClick={triggerFileInput}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  triggerFileInput()
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Arrastra o selecciona un archivo CSV"
               style={{
                 border: dragActive ? '2px solid var(--accent)' : '1px dashed var(--card-border)',
                 borderRadius: '12px',
@@ -454,7 +480,16 @@ export default function Landing() {
                   marginBottom: '15px',
                 }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-main)' }}>{file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
-                  <button onClick={(e) => { e.stopPropagation(); setFile(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                    aria-label="Quitar archivo seleccionado"
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
                 </div>
                 <button
                   className="btn-primary"
@@ -473,7 +508,7 @@ export default function Landing() {
                 <button
                   onClick={handleSample}
                   disabled={uploading}
-                  style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, fontSize: '12px', padding: 0, textDecoration: 'underline' }}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent-text)', cursor: 'pointer', fontWeight: 600, fontSize: '12px', padding: 0, textDecoration: 'underline' }}
                 >
                   Prueba con datos de ejemplo
                 </button>
@@ -481,14 +516,30 @@ export default function Landing() {
             )}
 
             {error && (
-              <p style={{ color: 'var(--accent)', fontSize: '12px', marginTop: '12px', textAlign: 'center' }}>{error}</p>
+              <p style={{ color: 'var(--accent-text)', fontSize: '12px', marginTop: '12px', textAlign: 'center' }}>{error}</p>
             )}
+
+            <p style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              marginTop: '16px',
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Tu archivo nunca sale de tu navegador
+            </p>
           </div>
 
           {/* CARD 2: CHAT */}
           <div className="feature-card col-5" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', marginBottom: '15px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-text)', marginBottom: '15px' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15a9 9 0 0 1-9 9m-9-9a9 9 0 0 1 9-9" />
                   <path d="M21 3L3 21" />
@@ -505,11 +556,7 @@ export default function Landing() {
               <div style={{ background: 'var(--card-bg)', borderRadius: '6px', padding: '8px 12px', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px', display: 'inline-block', border: '1px solid var(--card-border)' }}>
                 "Suma los ingresos totales por categoría en 2026..."
               </div>
-              <div style={{ background: 'var(--accent-glow)', border: '1px solid var(--accent-glow)', borderRadius: '8px', padding: '12px', fontFamily: 'monospace', fontSize: '11px' }}>
-                <span style={{ color: '#ec4899' }}>SELECT</span> categoria, <span style={{ color: '#3b82f6' }}>SUM</span>(ingresos)<br />
-                <span style={{ color: '#ec4899' }}>FROM</span> dataset <span style={{ color: '#ec4899' }}>WHERE</span> fecha &gt;= <span style={{ color: 'var(--accent)' }}>'2026-01-01'</span><br />
-                <span style={{ color: '#ec4899' }}>GROUP BY</span> categoria <span style={{ color: '#ec4899' }}>ORDER BY</span> 2 <span style={{ color: '#ec4899' }}>DESC</span>;
-              </div>
+              <ChartRenderer chartConfig={DEMO_CHART} />
             </div>
           </div>
         </div>
@@ -517,33 +564,35 @@ export default function Landing() {
         <div className="grid-3">
           <StatsChart />
 
-          {/* CARD 2: Editor SQL Integrado */}
+          {/* CARD 2: Privacidad total */}
           <div className="feature-card" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ marginBottom: '12px' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                <line x1="4" y1="22" x2="4" y2="15" />
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Editor SQL Integrado</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Privacidad total</h4>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5, marginBottom: '16px', flex: 1 }}>
-              Escribe comandos SQL directos sobre tus datos indexados con DuckDB a alta velocidad.
+              Tus datos se procesan en tu navegador con DuckDB. Solo el esquema de columnas y unas pocas filas de muestra viajan a la IA para traducir tu pregunta a SQL — nunca tu archivo completo.
             </p>
             <div style={{
               background: 'var(--code-bg)',
               borderRadius: '8px',
               padding: '12px',
-              fontFamily: 'monospace',
-              fontSize: '11px',
+              fontSize: '12px',
+              color: 'var(--text-main)',
               border: '1px solid var(--card-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
             }}>
-              <span style={{ color: '#ec4899' }}>SELECT</span> categoria, <span style={{ color: '#3b82f6' }}>SUM</span>(ingresos)<br />
-              <span style={{ color: '#ec4899' }}>FROM</span> dataset <span style={{ color: '#ec4899' }}>GROUP BY</span> categoria<br />
-              <span style={{ color: '#ec4899' }}>ORDER BY</span> 2 <span style={{ color: '#ec4899' }}>DESC</span>;
+              <span>✓ Tu CSV nunca se sube a un servidor</span>
+              <span>✓ Sin IA disponible, un motor de reglas local responde igual</span>
             </div>
           </div>
 
-          {/* CARD 3: Reportes y Exportación */}
+          {/* CARD 3: Reportes PDF */}
           <div className="feature-card" style={{ padding: '25px' }}>
             <div style={{ marginBottom: '15px' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
@@ -552,8 +601,8 @@ export default function Landing() {
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
             </div>
-            <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Reportes y Exportación</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5 }}>Genera reportes PDF ejecutivos de tus análisis o descarga resultados en CSV al instante.</p>
+            <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Reportes PDF</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5 }}>Genera reportes PDF ejecutivos de tus análisis, directamente en tu navegador, sin esperar a ningún servidor.</p>
           </div>
         </div>
       </section>
@@ -583,7 +632,7 @@ export default function Landing() {
               onClick={triggerFileInput}
               style={{
                 padding: '8px 16px',
-                background: 'var(--accent)',
+                background: 'var(--accent-strong)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
@@ -695,6 +744,7 @@ export default function Landing() {
                         setDatasets(prev => prev.filter(d => d.id !== ds.id))
                       }).catch(console.error)
                     }}
+                    aria-label={`Eliminar dataset ${ds.name}`}
                     style={{
                       position: 'absolute',
                       top: '10px',
@@ -702,22 +752,25 @@ export default function Landing() {
                       background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
-                      fontSize: '14px',
                       color: 'var(--text-muted)',
                       padding: '4px 6px',
                       borderRadius: '4px',
                       transition: 'all 0.2s ease',
+                      display: 'flex',
                     }}
                     onMouseOver={(e) => {
                       e.currentTarget.style.background = 'var(--accent-glow)'
-                      e.currentTarget.style.color = 'var(--accent)'
+                      e.currentTarget.style.color = 'var(--accent-text)'
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.background = 'transparent'
                       e.currentTarget.style.color = 'var(--text-muted)'
                     }}
                   >
-                    ✕
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
                   </button>
                 </div>
               ))}

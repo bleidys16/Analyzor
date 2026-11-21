@@ -68,7 +68,7 @@ export default function TechTicker() {
         textAlign: 'center',
         padding: '80px 20px 40px',
       }}>
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '2.5px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '10px' }}>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '1px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '10px' }}>
           TECNOLOGÍAS DE ALTO RENDIMIENTO QUE INTEGRAN NUESTRO STACK
         </p>
 
@@ -77,7 +77,7 @@ export default function TechTicker() {
             {[...techStack, ...techStack].map((tech, i) => (
               <div key={i} className="ticker-item">
                 <span style={{ color: 'var(--text-main)' }}>{tech.name}</span>
-                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 400 }}>{tech.desc}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>{tech.desc}</span>
               </div>
             ))}
           </div>

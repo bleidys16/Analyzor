@@ -167,9 +167,9 @@ export default function ChatMessages({ messages = [], sending = false, onSend, s
                 fontFamily: '"Space Grotesk", sans-serif',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--accent)'
+                e.currentTarget.style.background = 'var(--accent-strong)'
                 e.currentTarget.style.color = 'white'
-                e.currentTarget.style.borderColor = 'var(--accent)'
+                e.currentTarget.style.borderColor = 'var(--accent-strong)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'var(--code-bg)'
@@ -209,7 +209,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, s
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            background: msg.role === 'user' ? 'var(--accent)' : 'var(--code-bg)',
+            background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--code-bg)',
             border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
           }}>
             {msg.role === 'user' ? <UserIcon /> : <AiIcon />}
@@ -218,7 +218,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, s
             <div style={{
               padding: '10px 14px',
               borderRadius: '12px',
-              background: msg.role === 'user' ? 'var(--accent)' : 'var(--card-bg)',
+              background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--card-bg)',
               color: msg.role === 'user' ? 'white' : 'var(--text-main)',
               fontSize: '13px',
               lineHeight: '1.55',
