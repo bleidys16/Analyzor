@@ -101,7 +101,7 @@ const SUGGESTIONS = [
   'Gráfico de torta por género',
 ]
 
-export default function ChatMessages({ messages = [], sending = false, onSend, suggestions = SUGGESTIONS }) {
+export default function ChatMessages({ messages = [], sending = false, onSend, onRegenerate, onClearChat, suggestions = SUGGESTIONS }) {
   const validMessages = (messages || []).filter(msg => msg && msg.role)
   const ref = useRef(null)
 
@@ -186,60 +186,175 @@ export default function ChatMessages({ messages = [], sending = false, onSend, s
   }
 
   return (
-    <div ref={ref} style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px',
-      flex: 1,
-      overflowY: 'auto',
-      paddingRight: '4px',
-    }}>
-      {validMessages.map((msg, idx) => (
-        <div key={idx} style={{
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {onClearChat && (
+        <div style={{
           display: 'flex',
-          flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-          alignItems: 'flex-start',
-          gap: '8px',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingBottom: '8px',
+          marginBottom: '10px',
+          borderBottom: '1px solid var(--card-border)',
         }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--code-bg)',
-            border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
-          }}>
-            {msg.role === 'user' ? <UserIcon /> : <AiIcon />}
-          </div>
-          <div style={{ maxWidth: '80%', minWidth: 0 }}>
-            <div style={{
-              padding: '10px 14px',
-              borderRadius: '12px',
-              background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--card-bg)',
-              color: msg.role === 'user' ? 'white' : 'var(--text-main)',
-              fontSize: '13px',
-              lineHeight: '1.55',
-              border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
-              boxShadow: msg.role === 'user' ? '0 2px 8px rgba(239, 68, 68, 0.2)' : 'none',
-              whiteSpace: 'pre-wrap',
-              overflowWrap: 'break-word',
-            }}>
-              <MessageContent text={msg.content} />
-            </div>
-            {msg.role === 'assistant' && msg.query_result?.chart && (
-              <ChartRenderer chartConfig={msg.query_result.chart} />
-            )}
-          </div>
-        </div>
-      ))}
-      {sending && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '36px' }}>
-          <TypingDots />
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+            Conversación ({validMessages.length})
+          </span>
+          <button
+            onClick={onClearChat}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              fontFamily: '"Space Grotesk", sans-serif',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--accent-text)'
+              e.currentTarget.style.background = 'var(--code-bg)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.background = 'none'
+            }}
+            title="Borrar conversación"
+            aria-label="Borrar conversación"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Borrar conversación
+          </button>
         </div>
       )}
+
+      <div ref={ref} style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        flex: 1,
+        overflowY: 'auto',
+        paddingRight: '4px',
+      }}>
+        {validMessages.map((msg, idx) => {
+          const sql = msg.sql_generated || msg.query_result?.sql
+          return (
+            <div key={idx} style={{
+              display: 'flex',
+              flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+              alignItems: 'flex-start',
+              gap: '8px',
+            }}>
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--code-bg)',
+                border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
+              }}>
+                {msg.role === 'user' ? <UserIcon /> : <AiIcon />}
+              </div>
+              <div style={{ maxWidth: '80%', minWidth: 0 }}>
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--card-bg)',
+                  color: msg.role === 'user' ? 'white' : 'var(--text-main)',
+                  fontSize: '13px',
+                  lineHeight: '1.55',
+                  border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
+                  boxShadow: msg.role === 'user' ? '0 2px 8px rgba(239, 68, 68, 0.2)' : 'none',
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'break-word',
+                }}>
+                  <MessageContent text={msg.content} />
+                </div>
+                {msg.role === 'assistant' && sql && (
+                  <details style={{ marginTop: '8px' }}>
+                    <summary style={{
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      userSelect: 'none',
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="16 18 22 12 16 6" />
+                        <polyline points="8 6 2 12 8 18" />
+                      </svg>
+                      Ver consulta SQL
+                    </summary>
+                    <CodeBlock lang="sql" code={sql} />
+                  </details>
+                )}
+                {msg.role === 'assistant' && msg.query_result?.chart && (
+                  <ChartRenderer chartConfig={msg.query_result.chart} />
+                )}
+                {msg.role === 'assistant' && onRegenerate && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '6px' }}>
+                    <button
+                      onClick={() => onRegenerate(idx)}
+                      disabled={sending}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: '11px',
+                        cursor: sending ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontFamily: '"Space Grotesk", sans-serif',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!sending) {
+                          e.currentTarget.style.color = 'var(--text-main)'
+                          e.currentTarget.style.background = 'var(--code-bg)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--text-muted)'
+                        e.currentTarget.style.background = 'none'
+                      }}
+                      title="Regenerar respuesta"
+                      aria-label="Regenerar respuesta"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M23 4v6h-6" />
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                      </svg>
+                      Regenerar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+        {sending && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '36px' }}>
+            <TypingDots />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

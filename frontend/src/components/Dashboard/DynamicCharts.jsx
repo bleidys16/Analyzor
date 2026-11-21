@@ -77,6 +77,23 @@ function AutoCharts({ datasetId, analysis }) {
   )
 }
 
+function extractCorrelationPairs(correlations) {
+  if (!correlations || typeof correlations !== 'object') return []
+  const cols = Object.keys(correlations)
+  const pairs = []
+  for (let i = 0; i < cols.length; i++) {
+    for (let j = i + 1; j < cols.length; j++) {
+      const a = cols[i]
+      const b = cols[j]
+      const r = correlations[a]?.[b]
+      if (r !== null && r !== undefined && !Number.isNaN(r)) {
+        pairs.push({ a, b, r })
+      }
+    }
+  }
+  return pairs.sort((x, y) => Math.abs(y.r) - Math.abs(x.r))
+}
+
 function DatasetSummary({ dataset, analysis }) {
   const columns = dataset?.columns || []
   const dtypes = dataset?.dtypes || {}
@@ -90,6 +107,7 @@ function DatasetSummary({ dataset, analysis }) {
   const numericCols = columns.filter(isNumericType)
   const categoricCols = columns.filter(c => !numericCols.includes(c))
   const anomalyColumns = new Set((analysisData?.anomalies || []).map((a) => a.column))
+  const correlationPairs = extractCorrelationPairs(analysisData?.correlations)
 
   return (
     <>
@@ -205,6 +223,79 @@ function DatasetSummary({ dataset, analysis }) {
           </table>
         </div>
       </div>
+
+      {/* Correlaciones calculadas */}
+      {correlationPairs.length > 0 && (
+        <div style={{
+          background: 'var(--chart-bg)',
+          border: '1px solid var(--card-border)',
+          borderRadius: '12px',
+          padding: '20px',
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '14px',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
+              Correlaciones Estadísticas ({correlationPairs.length})
+            </h3>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>
+              Coeficiente de Pearson (r)
+            </span>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--card-border)' }}>
+                  <th scope="col" style={thStyle}>Variable 1</th>
+                  <th scope="col" style={thStyle}>Variable 2</th>
+                  <th scope="col" style={{ ...thStyle, textAlign: 'right' }}>Coeficiente (r)</th>
+                  <th scope="col" style={thStyle}>Relación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {correlationPairs.map(({ a, b, r }) => {
+                  const absR = Math.abs(r)
+                  const strength = absR >= 0.7 ? 'Fuerte' : absR >= 0.3 ? 'Moderada' : 'Débil'
+                  const isPositive = r >= 0
+                  const badgeStyle = absR >= 0.7
+                    ? { bg: isPositive ? '#eff6ff' : '#fef2f2', text: isPositive ? '#1d4ed8' : '#b91c1c' }
+                    : absR >= 0.3
+                    ? { bg: '#fef3c7', text: '#92400e' }
+                    : { bg: 'var(--code-bg)', text: 'var(--text-muted)' }
+
+                  return (
+                    <tr key={`${a}-${b}`} style={{ borderBottom: '1px solid var(--card-border)' }}>
+                      <td style={tdStyle}><strong>{a}</strong></td>
+                      <td style={tdStyle}><strong>{b}</strong></td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                        {r > 0 ? `+${r.toFixed(2)}` : r.toFixed(2)}
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{
+                          background: badgeStyle.bg,
+                          color: badgeStyle.text,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                        }}>
+                          {strength} {isPositive ? '(+)' : '(-)'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </>
   )
 }

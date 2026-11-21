@@ -59,6 +59,20 @@ export default function Dashboard() {
     return () => observer.disconnect()
   }, [])
 
+  const toggleTheme = () => {
+    setIsDarkMode(prev => {
+      const next = !prev
+      const themeStr = next ? 'dark' : 'light'
+      document.documentElement.setAttribute('data-theme', themeStr)
+      try {
+        localStorage.setItem('theme', themeStr)
+      } catch {
+        // Ignore
+      }
+      return next
+    })
+  }
+
   // Carga el dataset, su análisis y el historial del chat. Cada dataset tiene su propia instancia
   // de esta página (ver DashboardRoute en App.jsx), así que no hace falta limpiar estados previos.
   useEffect(() => {
@@ -145,6 +159,42 @@ export default function Dashboard() {
     }
   }
 
+  const handleClearChat = async () => {
+    try {
+      await chatAPI.clearChat(datasetId)
+      setMessages([])
+    } catch (err) {
+      console.error('Error al borrar chat:', err)
+    }
+  }
+
+  const handleRegenerate = async (assistantIdx) => {
+    if (sending) return
+    let question = ''
+    for (let i = assistantIdx - 1; i >= 0; i--) {
+      if (messages[i]?.role === 'user') {
+        question = messages[i].content
+        break
+      }
+    }
+    if (!question) return
+
+    setMessages(prev => prev.slice(0, assistantIdx))
+    setSending(true)
+    try {
+      const response = await chatAPI.sendMessage(datasetId, question)
+      setMessages(prev => [...prev, response.data])
+    } catch (err) {
+      console.error('Error al regenerar respuesta:', err)
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Error: No pude procesar tu pregunta. Intenta de nuevo.'
+      }])
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -192,13 +242,14 @@ export default function Dashboard() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#f8fafc',
+          background: 'var(--bg-color)',
+          color: 'var(--text-main)',
           fontFamily: '"Space Grotesk", sans-serif',
           position: 'relative',
           zIndex: 1,
         }}>
           <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }} role="alert" aria-live="assertive">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" style={{ margin: '0 auto 20px' }} aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" style={{ margin: '0 auto 20px' }} aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -234,7 +285,8 @@ export default function Dashboard() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#f8fafc',
+          background: 'var(--bg-color)',
+          color: 'var(--text-main)',
           fontFamily: '"Space Grotesk", sans-serif',
           position: 'relative',
           zIndex: 1,
@@ -245,13 +297,13 @@ export default function Dashboard() {
               height: '40px',
               borderWidth: '3px',
               borderStyle: 'solid',
-              borderColor: '#e2e8f0',
-              borderTopColor: '#ef4444',
+              borderColor: 'var(--card-border)',
+              borderTopColor: 'var(--accent)',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 20px',
             }} />
-            <p style={{ color: '#64748b', fontSize: '14px' }}>Analizando tu dataset...</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Analizando tu dataset...</p>
           </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -509,6 +561,31 @@ export default function Dashboard() {
                 </svg>
                 {exportingPDF ? 'Generando…' : 'PDF'}
               </button>
+
+              <button
+                onClick={toggleTheme}
+                className="btn-icon"
+                title={isDarkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+                aria-label={isDarkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+              >
+                {isDarkMode ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" />
+                    <line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
 
@@ -565,7 +642,14 @@ export default function Dashboard() {
               flexDirection: 'column',
               height: '550px',
             }}>
-              <ChatMessages messages={messages} sending={sending} onSend={handleSendMessage} suggestions={suggestions} />
+              <ChatMessages
+                messages={messages}
+                sending={sending}
+                onSend={handleSendMessage}
+                onRegenerate={handleRegenerate}
+                onClearChat={handleClearChat}
+                suggestions={suggestions}
+              />
               <ChatInput 
                 onSend={handleSendMessage} 
                 sending={sending}
