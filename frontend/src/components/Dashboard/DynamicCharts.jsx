@@ -2,11 +2,16 @@ import { useEffect, useState } from 'react'
 import { analysisAPI } from '../../api/analysis'
 import ChartRenderer from '../Chat/ChartRenderer'
 
-export default function DynamicCharts({ datasetId, dataset, analysis }) {
+export default function DynamicCharts({ datasetId, dataset, analysis, onViewAnomalyRows, onAskAnomaly }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <AutoCharts key={datasetId} datasetId={datasetId} analysis={analysis} />
-      <DatasetSummary dataset={dataset} analysis={analysis} />
+      <DatasetSummary
+        dataset={dataset}
+        analysis={analysis}
+        onViewAnomalyRows={onViewAnomalyRows}
+        onAskAnomaly={onAskAnomaly}
+      />
     </div>
   )
 }
@@ -94,7 +99,7 @@ function extractCorrelationPairs(correlations) {
   return pairs.sort((x, y) => Math.abs(y.r) - Math.abs(x.r))
 }
 
-function DatasetSummary({ dataset, analysis }) {
+function DatasetSummary({ dataset, analysis, onViewAnomalyRows, onAskAnomaly }) {
   const columns = dataset?.columns || []
   const dtypes = dataset?.dtypes || {}
   const analysisData = analysis || dataset?.analysis || {}
@@ -124,7 +129,7 @@ function DatasetSummary({ dataset, analysis }) {
         <KPI value={`${(dataset?.file_size / 1024).toFixed(1)} KB`} label="Tamaño" />
       </div>
 
-      {/* Anomalías: lo más accionable, arriba del detalle columna por columna */}
+      {/* Anomalías con Click-To-Action directo */}
       {analysisData?.anomalies?.length > 0 && (
         <div style={{
           background: 'var(--code-bg)',
@@ -133,7 +138,7 @@ function DatasetSummary({ dataset, analysis }) {
           padding: '20px',
         }}>
           <h3 style={{
-            margin: '0 0 12px 0',
+            margin: '0 0 14px 0',
             fontSize: '15px',
             fontWeight: 700,
             color: 'var(--warning)',
@@ -146,13 +151,124 @@ function DatasetSummary({ dataset, analysis }) {
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
-            Anomalías Detectadas
+            Anomalías Detectadas ({analysisData.anomalies.length})
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {analysisData.anomalies.map((a, i) => (
-              <p key={i} style={{ margin: 0, fontSize: '13px', color: 'var(--warning)', fontWeight: 500 }}>
-                {a.message}
-              </p>
+              <div key={i} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+                flexWrap: 'wrap',
+                background: 'var(--card-bg)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid var(--card-border)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
+                  <span style={{ color: 'var(--warning)', fontSize: '14px' }}>⚠️</span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-main)', fontWeight: 600 }}>
+                    {a.message}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {a.type === 'high_missing' && (
+                    <button
+                      onClick={() => onViewAnomalyRows?.(a)}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'var(--code-bg)',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: 'var(--text-main)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--accent)'
+                        e.currentTarget.style.color = 'var(--accent-text)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--card-border)'
+                        e.currentTarget.style.color = 'var(--text-main)'
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      Ver filas con nulos
+                    </button>
+                  )}
+                  {a.type === 'low_cardinality' && (
+                    <button
+                      onClick={() => onViewAnomalyRows?.(a)}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'var(--code-bg)',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: 'var(--text-main)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--accent)'
+                        e.currentTarget.style.color = 'var(--accent-text)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--card-border)'
+                        e.currentTarget.style.color = 'var(--text-main)'
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
+                      </svg>
+                      Ver distribución
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onAskAnomaly?.(a)}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'var(--accent-glow)',
+                      border: '1px solid var(--accent)',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: 'var(--accent-text)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--accent-strong)'
+                      e.currentTarget.style.color = '#ffffff'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--accent-glow)'
+                      e.currentTarget.style.color = 'var(--accent-text)'
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Preguntar por esta anomalía
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>

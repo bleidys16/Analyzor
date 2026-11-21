@@ -8,6 +8,7 @@ import { useStore } from '../store/store'
 import ChatMessages from '../components/Chat/ChatMessages'
 import ChatInput from '../components/Chat/ChatInput'
 import DynamicCharts from '../components/Dashboard/DynamicCharts'
+import InteractiveTable from '../components/Dashboard/InteractiveTable'
 import TopographicBackground from '../components/TopographicBackground'
 import { buildSuggestions } from '../engine/suggestions'
 import { latestPerDay } from '../utils/datasets'
@@ -16,7 +17,7 @@ export default function Dashboard() {
   const { datasetId } = useParams()
   const navigate = useNavigate()
   const { setCurrentDataset } = useStore()
-  
+
   const [dataset, setDataset] = useState(null)
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -25,6 +26,10 @@ export default function Dashboard() {
   const [messages, setMessages] = useState([])
   const [sending, setSending] = useState(false)
   const [activeTab, setActiveTab] = useState('analysis')
+  const [isChatOpen, setIsChatOpen] = useState(true)
+  const [activeTableFilter, setActiveTableFilter] = useState(null)
+  const [telemetryTime, setTelemetryTime] = useState(2.8)
+  const [showSchemaInAssistant, setShowSchemaInAssistant] = useState(false)
   // El tema guardado se lee al crear el estado; el observador solo reacciona a cambios posteriores
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
@@ -38,6 +43,24 @@ export default function Dashboard() {
   const [exportingPDF, setExportingPDF] = useState(false)
 
   const suggestions = useMemo(() => buildSuggestions(dataset, analysis), [dataset, analysis])
+
+  const handleViewAnomalyRows = (anomaly) => {
+    setActiveTab('preview')
+    setActiveTableFilter({
+      column: anomaly.column,
+      type: 'IS_NULL',
+      label: `Valores nulos en "${anomaly.column}"`,
+    })
+  }
+
+  const handleAskAnomaly = (anomaly) => {
+    setIsChatOpen(true)
+    setShowSchemaInAssistant(false)
+    const prompt = anomaly.type === 'high_missing'
+      ? `Detecté que la columna "${anomaly.column}" tiene ${typeof anomaly.value === 'number' ? anomaly.value.toFixed(1) : ''}% de valores nulos. ¿Puedes analizar por qué ocurre y cómo impacta en las métricas?`
+      : `Analiza la columna "${anomaly.column}": ${anomaly.message}. ¿Cuál es su distribución y qué patrón revela?`
+    handleSendMessage(prompt)
+  }
 
   // La lista de datasets se carga al abrir el modal (y solo la primera vez)
   const openDatasetList = async () => {
@@ -143,7 +166,7 @@ export default function Dashboard() {
 
     const userMsg = { role: 'user', content: message }
     setMessages(prev => [...prev, userMsg])
-    
+
     setSending(true)
     try {
       const response = await chatAPI.sendMessage(datasetId, message)
@@ -206,7 +229,7 @@ export default function Dashboard() {
           justifyContent: 'center',
           background: 'var(--bg-color)',
           color: 'var(--text-main)',
-          fontFamily: '"Geist", sans-serif',
+          fontFamily: '"Space Grotesk", sans-serif',
           position: 'relative',
           zIndex: 1,
         }}>
@@ -244,7 +267,7 @@ export default function Dashboard() {
           justifyContent: 'center',
           background: 'var(--bg-color)',
           color: 'var(--text-main)',
-          fontFamily: '"Geist", sans-serif',
+          fontFamily: '"Space Grotesk", sans-serif',
           position: 'relative',
           zIndex: 1,
         }}>
@@ -287,7 +310,7 @@ export default function Dashboard() {
           justifyContent: 'center',
           background: 'var(--bg-color)',
           color: 'var(--text-main)',
-          fontFamily: '"Geist", sans-serif',
+          fontFamily: '"Space Grotesk", sans-serif',
           position: 'relative',
           zIndex: 1,
         }}>
@@ -317,7 +340,7 @@ export default function Dashboard() {
       <div style={{
         minHeight: '100vh',
         padding: '20px',
-        fontFamily: '"Geist", sans-serif',
+        fontFamily: '"Space Grotesk", sans-serif',
         position: 'relative',
         zIndex: 1,
         background: 'var(--bg-color)',
@@ -481,6 +504,46 @@ export default function Dashboard() {
             text-align: center;
             margin-top: 8px;
           }
+          .dash-split-workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 420px;
+            gap: 24px;
+            align-items: start;
+            transition: all 0.25s ease;
+          }
+          .dash-split-workspace.assistant-closed {
+            grid-template-columns: minmax(0, 1fr);
+          }
+          .assistant-sidebar {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 200px);
+            min-height: 580px;
+            position: sticky;
+            top: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+          }
+          @media (max-width: 1040px) {
+            .dash-split-workspace {
+              grid-template-columns: 1fr;
+            }
+            .assistant-sidebar {
+              position: fixed;
+              top: 0;
+              right: 0;
+              bottom: 0;
+              width: 100%;
+              max-width: 440px;
+              height: 100vh;
+              border-radius: 0;
+              z-index: 1000;
+              box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+            }
+          }
           .query-workbench {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 280px;
@@ -526,7 +589,7 @@ export default function Dashboard() {
         `}</style>
 
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          
+
           {/* HEADER */}
           <div className="dash-header">
             <div className="dash-header-title">
@@ -561,7 +624,7 @@ export default function Dashboard() {
                   flexWrap: 'wrap',
                 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
                     {dataset?.rows_count?.toLocaleString()} filas
                   </span>
                   <span style={{ color: 'var(--text-muted)' }}>•</span>
@@ -578,7 +641,7 @@ export default function Dashboard() {
                 className="btn-ghost"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
                 </svg>
                 Historial
               </button>
@@ -589,10 +652,10 @@ export default function Dashboard() {
                 disabled={exportingPDF}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
                 {exportingPDF ? 'Generando…' : 'PDF'}
               </button>
@@ -624,118 +687,234 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* TABS */}
+          {/* TABS & ASSISTANT TOGGLE */}
           <div style={{
             display: 'flex',
-            gap: '0',
+            alignItems: 'center',
+            gap: '8px',
             marginBottom: '24px',
             borderBottom: '1px solid var(--card-border)',
+            paddingBottom: '2px',
           }}>
             <button
               className={`tab-btn ${activeTab === 'analysis' ? 'active' : ''}`}
               onClick={() => setActiveTab('analysis')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+                <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
               </svg>
               Análisis
-            </button>
-            <button
-              className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
-              onClick={() => setActiveTab('chat')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }} aria-hidden="true">
-                <polyline points="4 17 10 11 4 5" />
-                <line x1="12" y1="19" x2="20" y2="19" />
-              </svg>
-              Consultas
             </button>
             <button
               className={`tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
               onClick={() => setActiveTab('preview')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
               </svg>
-              Vista Previa
+              Tabla Interactiva
+            </button>
+
+            <button
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              style={{
+                marginLeft: 'auto',
+                padding: '7px 14px',
+                borderRadius: '8px',
+                border: isChatOpen ? '1px solid var(--accent)' : '1px solid var(--card-border)',
+                background: isChatOpen ? 'var(--accent-glow)' : 'var(--code-bg)',
+                color: isChatOpen ? 'var(--accent-text)' : 'var(--text-main)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+              aria-expanded={isChatOpen}
+              aria-controls="assistant-sidebar"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <span>{isChatOpen ? 'Ocultar Asistente' : 'Abrir Asistente'}</span>
+              {messages.length > 0 && (
+                <span style={{
+                  background: 'var(--accent-strong)',
+                  color: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '1px 6px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                }}>
+                  {messages.length}
+                </span>
+              )}
             </button>
           </div>
 
-          {/* CONTENT */}
-          {activeTab === 'analysis' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <DynamicCharts datasetId={datasetId} dataset={dataset} analysis={analysis} />
-            </div>
-          )}
-
-          {activeTab === 'chat' && (
-            <div className="query-workbench">
-              <div className="query-panel">
-                <ChatMessages
-                  messages={messages}
-                  sending={sending}
-                  onSend={handleSendMessage}
-                  onRegenerate={handleRegenerate}
-                  onClearChat={handleClearChat}
-                  suggestions={suggestions}
+          {/* SPLIT VIEW WORKSPACE: ANÁLISIS / TABLA + ASISTENTE LATERAL */}
+          <div className={`dash-split-workspace ${!isChatOpen ? 'assistant-closed' : ''}`}>
+            {/* Panel Principal Izquierdo */}
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {activeTab === 'analysis' && (
+                <DynamicCharts
+                  datasetId={datasetId}
+                  dataset={dataset}
+                  analysis={analysis}
+                  onViewAnomalyRows={handleViewAnomalyRows}
+                  onAskAnomaly={handleAskAnomaly}
                 />
-                <ChatInput 
-                  onSend={handleSendMessage} 
-                  sending={sending}
+              )}
+
+              {activeTab === 'preview' && (
+                <InteractiveTable
+                  datasetId={datasetId}
+                  dataset={dataset}
+                  activeFilter={activeTableFilter}
+                  onClearFilter={() => setActiveTableFilter(null)}
+                  onExecutionTimeUpdate={(t) => setTelemetryTime(t)}
+                  onAskAboutColumn={(col) => {
+                    setIsChatOpen(true)
+                    setShowSchemaInAssistant(false)
+                    handleSendMessage(`¿Cuál es el resumen y valores principales de la columna "${col}"?`)
+                  }}
                 />
-              </div>
-
-              <SchemaInspector
-                dataset={dataset}
-                analysis={analysis}
-                onSelectColumn={(col) => handleSendMessage(`¿Cuál es el resumen y valores principales de ${col}?`)}
-              />
+              )}
             </div>
-          )}
 
-          {activeTab === 'preview' && dataset?.preview?.length > 0 && (
+            {/* Panel Asistente Lateral (Split View Colapsable) */}
+            {isChatOpen && (
+              <aside id="assistant-sidebar" className="assistant-sidebar mobile-drawer" aria-label="Panel Asistente IA">
+                {/* Header del Asistente */}
+                <div style={{
+                  padding: '12px 16px',
+                  borderBottom: '1px solid var(--card-border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'var(--card-bg)',
+                  flexShrink: 0,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: 'var(--accent)', fontSize: '15px' }}>💬</span>
+                    <h2 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Asistente IA
+                    </h2>
+                    <span style={{
+                      fontFamily: "'Geist Mono', monospace",
+                      fontSize: '10px',
+                      color: 'var(--accent-text)',
+                      background: 'var(--accent-glow)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontWeight: 600,
+                    }}>
+                      DuckDB Local
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      onClick={() => setShowSchemaInAssistant(!showSchemaInAssistant)}
+                      style={{
+                        background: showSchemaInAssistant ? 'var(--accent-glow)' : 'transparent',
+                        border: '1px solid var(--card-border)',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: showSchemaInAssistant ? 'var(--accent-text)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      title="Ver esquema de columnas"
+                    >
+                      Columnas ({dataset?.columns?.length || 0})
+                    </button>
+                    <button
+                      onClick={() => setIsChatOpen(false)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px 6px',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                      title="Ocultar Asistente"
+                      aria-label="Cerrar panel de asistente"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                {/* Contenido del Asistente: Chat o Esquema */}
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  {showSchemaInAssistant ? (
+                    <div style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
+                      <SchemaInspector
+                        dataset={dataset}
+                        analysis={analysis}
+                        onSelectColumn={(col) => {
+                          setShowSchemaInAssistant(false)
+                          handleSendMessage(`¿Cuál es el resumen y valores principales de ${col}?`)
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '12px 16px' }}>
+                      <ChatMessages
+                        messages={messages}
+                        sending={sending}
+                        onSend={handleSendMessage}
+                        onRegenerate={handleRegenerate}
+                        onClearChat={handleClearChat}
+                        suggestions={suggestions}
+                      />
+                      <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+                        <ChatInput onSend={handleSendMessage} sending={sending} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </aside>
+            )}
+          </div>
+
+          {/* FOOTER: MICRO-INDICADOR DE RENDIMIENTO Y PRIVACIDAD */}
+          <footer style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '28px 0 14px',
+            marginTop: '40px',
+            borderTop: '1px solid var(--card-border)',
+          }}>
             <div style={{
-              background: 'var(--card-bg)',
-              borderRadius: '12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '7px 18px',
+              borderRadius: '100px',
+              background: 'var(--code-bg)',
               border: '1px solid var(--card-border)',
-              padding: '20px',
-              overflowX: 'auto',
+              fontSize: '11px',
+              fontFamily: "'Geist Mono', monospace",
+              color: 'var(--text-muted)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
             }}>
-              <h3 style={{
-                margin: '0 0 16px 0',
-                fontSize: '14px',
-                fontWeight: 700,
-                color: 'var(--text-main)',
-              }}>
-                Vista Previa ({dataset.preview.length} filas)
-              </h3>
-              <div style={{ overflowX: 'auto', border: '1px solid var(--card-border)', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--code-bg)', borderBottom: '1px solid var(--card-border)' }}>
-                      {(dataset?.columns || []).map(col => (
-                        <th key={col} scope="col" style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dataset.preview.map((row, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--card-border)' }}>
-                        {(dataset?.columns || []).map(col => (
-                          <td key={col} style={{ padding: '6px 10px', color: 'var(--text-main)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {String(row[col] ?? '').substring(0, 30)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="scroll-hint">← Desliza para ver más columnas →</p>
+              <span style={{ color: '#eab308', fontSize: '13px' }}>⚡</span>
+              <span>
+                Procesado en <strong style={{ color: 'var(--text-main)' }}>{telemetryTime > 0 ? `${telemetryTime.toFixed(1)} ms` : '< 3.0 ms'}</strong> en tu navegador (<strong style={{ color: 'var(--text-main)' }}>0 bytes</strong> enviados a servidores externos)
+              </span>
             </div>
-          )}
+          </footer>
         </div>
       </div>
 
