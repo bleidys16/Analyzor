@@ -30,7 +30,7 @@ export default function NotFound() {
         justifyContent: 'center',
         background: 'var(--bg-color)',
         color: 'var(--text-main)',
-        fontFamily: '"Space Grotesk", sans-serif',
+        fontFamily: '"Geist", sans-serif',
         position: 'relative',
         zIndex: 1,
       }}>

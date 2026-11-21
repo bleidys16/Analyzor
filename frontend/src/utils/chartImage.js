@@ -11,7 +11,7 @@ const SCALE = 2
 const PADDING = 16
 const TITLE_HEIGHT = 34
 const LEGEND_ROW_HEIGHT = 22
-const FONT = 'Space Grotesk, system-ui, sans-serif'
+const FONT = 'Geist, system-ui, sans-serif'
 
 export const slugify = (text) =>
   String(text ?? '')

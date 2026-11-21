@@ -206,7 +206,7 @@ export default function Dashboard() {
           justifyContent: 'center',
           background: 'var(--bg-color)',
           color: 'var(--text-main)',
-          fontFamily: '"Space Grotesk", sans-serif',
+          fontFamily: '"Geist", sans-serif',
           position: 'relative',
           zIndex: 1,
         }}>
@@ -244,7 +244,7 @@ export default function Dashboard() {
           justifyContent: 'center',
           background: 'var(--bg-color)',
           color: 'var(--text-main)',
-          fontFamily: '"Space Grotesk", sans-serif',
+          fontFamily: '"Geist", sans-serif',
           position: 'relative',
           zIndex: 1,
         }}>
@@ -287,7 +287,7 @@ export default function Dashboard() {
           justifyContent: 'center',
           background: 'var(--bg-color)',
           color: 'var(--text-main)',
-          fontFamily: '"Space Grotesk", sans-serif',
+          fontFamily: '"Geist", sans-serif',
           position: 'relative',
           zIndex: 1,
         }}>
@@ -317,7 +317,7 @@ export default function Dashboard() {
       <div style={{
         minHeight: '100vh',
         padding: '20px',
-        fontFamily: '"Space Grotesk", sans-serif',
+        fontFamily: '"Geist", sans-serif',
         position: 'relative',
         zIndex: 1,
         background: 'var(--bg-color)',
@@ -943,7 +943,7 @@ function SchemaInspector({ dataset, analysis, onSelectColumn }) {
                 borderRadius: '8px',
                 cursor: 'pointer',
                 textAlign: 'left',
-                fontFamily: '"Space Grotesk", sans-serif',
+                fontFamily: '"Geist", sans-serif',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {

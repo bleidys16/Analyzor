@@ -165,7 +165,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
                 color: 'var(--text-muted)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                fontFamily: '"Space Grotesk", sans-serif',
+                fontFamily: '"Geist", sans-serif',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--accent-strong)'
@@ -214,7 +214,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '6px',
-              fontFamily: '"Space Grotesk", sans-serif',
+              fontFamily: '"Geist", sans-serif',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => {
@@ -322,7 +322,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
                         gap: '4px',
                         padding: '2px 6px',
                         borderRadius: '4px',
-                        fontFamily: '"Space Grotesk", sans-serif',
+                        fontFamily: '"Geist", sans-serif',
                         transition: 'all 0.2s ease',
                       }}
                       onMouseEnter={(e) => {

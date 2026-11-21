@@ -56,7 +56,7 @@ export default function ChatInput({ onSend, sending = false }) {
             background: 'transparent',
             padding: '10px 0',
             fontSize: '13px',
-            fontFamily: '"Space Grotesk", sans-serif',
+            fontFamily: '"Geist", sans-serif',
             color: 'var(--text-main)',
             outline: 'none',
           }}

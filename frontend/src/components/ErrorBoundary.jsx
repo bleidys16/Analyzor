@@ -19,7 +19,7 @@ export default class ErrorBoundary extends Component {
           alignItems: 'center',
           justifyContent: 'center',
           background: '#f8fafc',
-          fontFamily: '"Space Grotesk", sans-serif',
+          fontFamily: '"Geist", sans-serif',
         }}>
           <div style={{ textAlign: 'center', maxWidth: '500px', padding: '20px' }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" style={{ margin: '0 auto 20px' }}>
