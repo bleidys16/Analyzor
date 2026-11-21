@@ -25,18 +25,16 @@ function TypingDots() {
   )
 }
 
-const AiIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 2a4 4 0 0 1 4 4c0 2-2 3-2 5h-4c0-2-2-3-2-5a4 4 0 0 1 4-4z"/>
-    <line x1="12" y1="14" x2="12" y2="20"/>
-    <line x1="8" y1="22" x2="16" y2="22"/>
+const QueryIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="4 17 10 11 4 5" />
+    <line x1="12" y1="19" x2="20" y2="19" />
   </svg>
 )
 
-const UserIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4"/>
-    <path d="M20 21a8 8 0 0 0-16 0"/>
+const PromptIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="9 18 15 12 9 6" />
   </svg>
 )
 
@@ -124,24 +122,27 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
         padding: '40px 20px',
       }}>
         <div style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '16px',
-          background: 'var(--accent-glow)',
+          width: '44px',
+          height: '44px',
+          borderRadius: '10px',
+          background: 'var(--code-bg)',
+          border: '1px solid var(--card-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          color: 'var(--text-main)',
         }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
           </svg>
         </div>
         <div style={{ textAlign: 'center' }}>
           <p style={{ color: 'var(--text-main)', fontSize: '15px', margin: '0 0 4px 0', fontWeight: 600 }}>
-            ¿Qué quieres saber?
+            Consultas en lenguaje natural
           </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>
-            Pregúntale a la IA sobre tus datos o elige una sugerencia
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+            Escribe una pregunta sobre tus datos o selecciona una consulta rápida:
           </p>
         </div>
         <div style={{
@@ -197,7 +198,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
           borderBottom: '1px solid var(--card-border)',
         }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-            Conversación ({validMessages.length})
+            Consultas realizadas ({validMessages.length})
           </span>
           <button
             onClick={onClearChat}
@@ -264,7 +265,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
                 background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--code-bg)',
                 border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
               }}>
-                {msg.role === 'user' ? <UserIcon /> : <AiIcon />}
+                {msg.role === 'user' ? <PromptIcon /> : <QueryIcon />}
               </div>
               <div style={{ maxWidth: '80%', minWidth: 0 }}>
                 <div style={{

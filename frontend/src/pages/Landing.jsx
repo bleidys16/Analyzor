@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import TopographicBackground from '../components/TopographicBackground'
-import TechTicker from '../components/TechTicker'
 import StatsChart from '../components/StatsChart'
 import ChartRenderer from '../components/Chat/ChartRenderer'
 import { latestPerDay } from '../utils/datasets'
@@ -366,8 +365,85 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Tech Ticker */}
-        <TechTicker />
+        {/* Principles Bar: sobrio, sin emojis y sin tarjetas envueltas */}
+        <section style={{
+          maxWidth: '1000px',
+          margin: '0 auto 60px',
+          padding: '24px 20px',
+          borderTop: '1px solid var(--card-border)',
+          borderBottom: '1px solid var(--card-border)',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '32px',
+          }}>
+            <div>
+              <p style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+                letterSpacing: '1px',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+              }}>
+                Procesamiento local
+              </p>
+              <p style={{
+                margin: 0,
+                fontSize: '13px',
+                color: 'var(--text-muted)',
+                lineHeight: 1.5,
+              }}>
+                Tus datos se procesan en tu propio navegador mediante DuckDB-WASM. Tu archivo nunca se sube a un servidor ni se almacena en la nube.
+              </p>
+            </div>
+
+            <div>
+              <p style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+                letterSpacing: '1px',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+              }}>
+                Cero fricción
+              </p>
+              <p style={{
+                margin: 0,
+                fontSize: '13px',
+                color: 'var(--text-muted)',
+                lineHeight: 1.5,
+              }}>
+                Sin registros de cuenta, sin pasarelas de pago y sin instalar herramientas externas. Carga tus datos y empieza en segundos.
+              </p>
+            </div>
+
+            <div>
+              <p style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+                letterSpacing: '1px',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+              }}>
+                Motor resiliente
+              </p>
+              <p style={{
+                margin: 0,
+                fontSize: '13px',
+                color: 'var(--text-muted)',
+                lineHeight: 1.5,
+              }}>
+                Si la conexión a la IA se agota o se interrumpe, el motor analítico de reglas local resuelve tus preguntas sin dejarte sin respuesta.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* Features Section */}
       <section id="features" style={{

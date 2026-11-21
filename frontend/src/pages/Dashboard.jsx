@@ -481,6 +481,41 @@ export default function Dashboard() {
             text-align: center;
             margin-top: 8px;
           }
+          .query-workbench {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 280px;
+            gap: 20px;
+            align-items: start;
+          }
+          .query-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 270px);
+            min-height: 560px;
+          }
+          .schema-inspector {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            padding: 16px;
+            position: sticky;
+            top: 20px;
+          }
+          @media (max-width: 960px) {
+            .query-workbench {
+              grid-template-columns: 1fr;
+            }
+            .schema-inspector {
+              display: none;
+            }
+            .query-panel {
+              height: 550px;
+            }
+          }
           @media (max-width: 640px) {
             .dash-header-title h1 { font-size: 20px; }
             .dash-header-actions { width: 100%; }
@@ -609,10 +644,11 @@ export default function Dashboard() {
               className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
               onClick={() => setActiveTab('chat')}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }} aria-hidden="true">
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
               </svg>
-              Asistente IA
+              Consultas
             </button>
             <button
               className={`tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
@@ -633,26 +669,26 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'chat' && (
-            <div style={{
-              background: 'var(--card-bg)',
-              borderRadius: '12px',
-              border: '1px solid var(--card-border)',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              height: '550px',
-            }}>
-              <ChatMessages
-                messages={messages}
-                sending={sending}
-                onSend={handleSendMessage}
-                onRegenerate={handleRegenerate}
-                onClearChat={handleClearChat}
-                suggestions={suggestions}
-              />
-              <ChatInput 
-                onSend={handleSendMessage} 
-                sending={sending}
+            <div className="query-workbench">
+              <div className="query-panel">
+                <ChatMessages
+                  messages={messages}
+                  sending={sending}
+                  onSend={handleSendMessage}
+                  onRegenerate={handleRegenerate}
+                  onClearChat={handleClearChat}
+                  suggestions={suggestions}
+                />
+                <ChatInput 
+                  onSend={handleSendMessage} 
+                  sending={sending}
+                />
+              </div>
+
+              <SchemaInspector
+                dataset={dataset}
+                analysis={analysis}
+                onSelectColumn={(col) => handleSendMessage(`¿Cuál es el resumen y valores principales de ${col}?`)}
               />
             </div>
           )}
@@ -845,5 +881,112 @@ export default function Dashboard() {
         </div>
       )}
     </>
+  )
+}
+
+function SchemaInspector({ dataset, analysis, onSelectColumn }) {
+  const columns = dataset?.columns || []
+  const dtypes = dataset?.dtypes || {}
+  const dq = analysis?.data_quality || {}
+  const anomalies = new Set((analysis?.anomalies || []).map(a => a.column))
+
+  return (
+    <div className="schema-inspector">
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '12px',
+        paddingBottom: '8px',
+        borderBottom: '1px solid var(--card-border)',
+      }}>
+        <h2 style={{
+          margin: 0,
+          fontSize: '11px',
+          fontWeight: 700,
+          color: 'var(--text-main)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.8px',
+        }}>
+          Columnas ({columns.length})
+        </h2>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          Click para consultar
+        </span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        maxHeight: '460px',
+        overflowY: 'auto',
+        paddingRight: '4px',
+      }}>
+        {columns.map(col => {
+          const rawType = dtypes[col] || dq[col]?.dtype || ''
+          const isNum = rawType.toLowerCase().includes('int') || rawType.toLowerCase().includes('float') || rawType.toLowerCase().includes('double')
+          const hasAnomaly = anomalies.has(col)
+
+          return (
+            <button
+              key={col}
+              onClick={() => onSelectColumn?.(col)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 10px',
+                background: 'var(--code-bg)',
+                border: '1px solid var(--card-border)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontFamily: '"Space Grotesk", sans-serif',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent)'
+                e.currentTarget.style.transform = 'translateX(2px)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--card-border)'
+                e.currentTarget.style.transform = 'none'
+              }}
+              title={`Consultar columna "${col}"`}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: 'var(--text-main)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {col}
+                </span>
+                {hasAnomaly && (
+                  <span title="Esta columna tiene una anomalía detectada" style={{ color: 'var(--warning)', fontSize: '11px' }} aria-hidden="true">⚑</span>
+                )}
+              </div>
+              <span style={{
+                fontSize: '10px',
+                fontWeight: 600,
+                color: isNum ? '#1d4ed8' : '#92400e',
+                background: isNum ? '#eff6ff' : '#fef3c7',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                flexShrink: 0,
+                textTransform: 'uppercase',
+              }}>
+                {rawType ? rawType.split('(')[0].substring(0, 7) : 'col'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
