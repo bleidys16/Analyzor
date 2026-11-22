@@ -1,27 +1,263 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { datasetsAPI } from '../api/datasets'
 import TopographicBackground from '../components/TopographicBackground'
 import StatsChart from '../components/StatsChart'
 import ChartRenderer from '../components/Chat/ChartRenderer'
 import { latestPerDay } from '../utils/datasets'
+import { clipboardToCsv, inspectCsvSnippet } from '../utils/clipboard'
 
-// Gráfico de ejemplo fijo: demuestra el mecanismo real (pregunta -> gráfico), no llama al motor.
-const DEMO_CHART = {
-  type: 'bar',
-  title: 'Ingresos totales por categoría',
-  data: [
-    { name: 'Electrónica', value: 42800 },
-    { name: 'Hogar', value: 31200 },
-    { name: 'Ropa', value: 24600 },
-    { name: 'Deportes', value: 18900 },
-  ],
+// Presets del Sandbox interactivo para probar consultas y gráficos en vivo en la landing
+const SANDBOX_PRESETS = [
+  {
+    id: 'categories',
+    label: 'Top categorías',
+    question: '¿Cuáles son las categorías con mayor volumen de ventas?',
+    sql: 'SELECT categoria, SUM(monto) AS total_ventas FROM ventas GROUP BY 1 ORDER BY 2 DESC LIMIT 5;',
+    chart: {
+      type: 'bar',
+      title: 'Top categorías por volumen de ventas',
+      data: [
+        { name: 'Electrónica', value: 42800 },
+        { name: 'Hogar', value: 31200 },
+        { name: 'Ropa', value: 24600 },
+        { name: 'Deportes', value: 18900 },
+        { name: 'Juguetes', value: 12400 },
+      ],
+    },
+    latency: '1.4 ms',
+    insight: 'El 32.9% del total se concentra en "Electrónica" (42,800), liderando las ventas.',
+  },
+  {
+    id: 'correlation',
+    label: 'Ver correlación',
+    question: '¿Existe correlación entre el precio unitario y las unidades vendidas?',
+    sql: 'SELECT precio_unitario AS x, unidades_vendidas AS y FROM ventas LIMIT 20;',
+    chart: {
+      type: 'scatter',
+      title: 'Precio unitario vs. Unidades vendidas',
+      data: [
+        { x: 12, y: 92 }, { x: 15, y: 84 }, { x: 18, y: 76 }, { x: 22, y: 68 },
+        { x: 25, y: 62 }, { x: 30, y: 55 }, { x: 35, y: 48 }, { x: 40, y: 42 },
+        { x: 45, y: 36 }, { x: 55, y: 28 }, { x: 65, y: 22 }, { x: 75, y: 18 },
+        { x: 85, y: 14 }, { x: 99, y: 11 }, { x: 120, y: 8 }, { x: 150, y: 5 },
+        { x: 14, y: 88 }, { x: 28, y: 58 }, { x: 38, y: 44 }, { x: 50, y: 32 },
+      ],
+    },
+    latency: '2.1 ms',
+    insight: 'Se muestran 20 puntos analizados que evidencian correlación inversa entre precio y volumen de compra.',
+  },
+  {
+    id: 'trend',
+    label: 'Evolución temporal',
+    question: '¿Cómo evolucionaron las ventas mes a mes durante el primer semestre?',
+    sql: "SELECT strftime(date_trunc('month', fecha), '%Y-%m') AS mes, SUM(monto) AS ventas FROM ventas GROUP BY 1 ORDER BY 1;",
+    chart: {
+      type: 'line',
+      title: 'Evolución mensual de ingresos',
+      data: [
+        { name: '2024-01', value: 14200 },
+        { name: '2024-02', value: 18500 },
+        { name: '2024-03', value: 22400 },
+        { name: '2024-04', value: 27100 },
+        { name: '2024-05', value: 33600 },
+        { name: '2024-06', value: 42800 },
+      ],
+    },
+    latency: '1.8 ms',
+    insight: 'Tendencia de crecimiento del 201% entre 2024-01 y 2024-06 (máximo: 42,800 en 2024-06).',
+  },
+  {
+    id: 'distribution',
+    label: 'Distribución',
+    question: '¿Cómo se distribuyen las operaciones por canal de venta?',
+    sql: 'SELECT canal, COUNT(*) AS operaciones FROM ventas GROUP BY 1;',
+    chart: {
+      type: 'pie',
+      title: 'Distribución por canal de venta',
+      data: [
+        { name: 'Tienda Online', value: 6420 },
+        { name: 'Tienda Física', value: 3840 },
+        { name: 'Marketplace', value: 2450 },
+        { name: 'B2B', value: 1290 },
+      ],
+    },
+    latency: '1.1 ms',
+    insight: 'El 45.9% del total se concentra en "Tienda Online" (6,420 operaciones).',
+  },
+]
+
+function SandboxWidget({ onOpenDemo }) {
+  const [activePreset, setActivePreset] = useState(0)
+  const current = SANDBOX_PRESETS[activePreset]
+
+  return (
+    <div style={{
+      background: 'var(--code-bg)',
+      border: '1px solid var(--card-border)',
+      borderRadius: '16px',
+      padding: '20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+      height: '100%',
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '10px',
+        borderBottom: '1px solid var(--card-border)',
+        flexWrap: 'wrap',
+        gap: '8px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            fontSize: '11px',
+            fontFamily: "'Geist Mono', monospace",
+            fontWeight: 700,
+            letterSpacing: '1px',
+            color: 'var(--accent-text)',
+          }}>
+            SANDBOX EN VIVO
+          </span>
+          <span style={{
+            fontSize: '10px',
+            fontFamily: "'Geist Mono', monospace",
+            padding: '2px 6px',
+            borderRadius: '4px',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            color: 'var(--text-muted)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            {current.latency} en local
+          </span>
+        </div>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Geist Mono', monospace" }}>
+          DuckDB-WASM
+        </span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        gap: '6px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        {SANDBOX_PRESETS.map((preset, idx) => {
+          const isActive = idx === activePreset
+          return (
+            <button
+              key={preset.id}
+              onClick={() => setActivePreset(idx)}
+              style={{
+                background: isActive ? 'var(--accent-strong)' : 'var(--card-bg)',
+                color: isActive ? '#ffffff' : 'var(--text-muted)',
+                border: `1px solid ${isActive ? 'var(--accent-strong)' : 'var(--card-border)'}`,
+                borderRadius: '6px',
+                padding: '5px 11px',
+                fontSize: '11.5px',
+                fontWeight: isActive ? 600 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                fontFamily: '"Geist", sans-serif',
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.color = 'var(--text-main)'
+                  e.currentTarget.style.borderColor = 'var(--text-muted)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.color = 'var(--text-muted)'
+                  e.currentTarget.style.borderColor = 'var(--card-border)'
+                }
+              }}
+            >
+              {preset.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div style={{
+        background: 'var(--card-bg)',
+        borderRadius: '8px',
+        padding: '8px 12px',
+        fontSize: '12.5px',
+        color: 'var(--text-main)',
+        border: '1px solid var(--card-border)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
+        <span style={{ color: 'var(--accent-text)', fontWeight: 700, fontFamily: "'Geist Mono', monospace" }}>&gt;</span>
+        <span>"{current.question}"</span>
+      </div>
+
+      <div style={{
+        background: 'var(--card-bg)',
+        borderRadius: '6px',
+        padding: '6px 10px',
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: '10.5px',
+        color: 'var(--text-muted)',
+        border: '1px solid var(--card-border)',
+        overflowX: 'auto',
+        whiteSpace: 'nowrap',
+      }}>
+        <code>{current.sql}</code>
+      </div>
+
+      <div style={{ marginTop: '2px' }}>
+        <ChartRenderer chartConfig={current.chart} />
+      </div>
+
+      {onOpenDemo && (
+        <div style={{
+          marginTop: 'auto',
+          paddingTop: '8px',
+          borderTop: '1px solid var(--card-border)',
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}>
+          <button
+            onClick={onOpenDemo}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--accent-text)',
+              fontSize: '11.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 4px',
+              fontFamily: '"Geist", sans-serif',
+            }}
+          >
+            Abrir dataset completo en el Dashboard →
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Landing() {
   const navigate = useNavigate()
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [inspecting, setInspecting] = useState(false)
+  const [inspectionSummary, setInspectionSummary] = useState(null)
   const [error, setError] = useState(null)
   const [dragActive, setDragActive] = useState(false)
   const [datasets, setDatasets] = useState([])
@@ -55,6 +291,90 @@ export default function Landing() {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
   }, [isDarkMode])
 
+  const scrollToUploadZone = useCallback(() => {
+    const el = document.getElementById('upload-section')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [])
+
+  // Micro-inspección instantánea previa (200 ms) antes de abrir el análisis
+  const processFileWithInspection = useCallback(async (selectedFile, fromClipboard = false) => {
+    if (!selectedFile) return
+    if (!selectedFile.name.endsWith('.csv')) {
+      setError('Por favor sube o pega un archivo CSV válido')
+      return
+    }
+
+    setFile(selectedFile)
+    setError(null)
+    setInspecting(true)
+    scrollToUploadZone()
+
+    try {
+      const text = await selectedFile.text()
+      const { rowsCount, colsCount } = inspectCsvSnippet(text)
+
+      setInspectionSummary({
+        rowsCount,
+        colsCount,
+        name: fromClipboard ? 'Datos desde portapapeles' : selectedFile.name,
+        fromClipboard,
+      })
+
+      // 200 ms de micro-resumen animado para feedback táctil instantáneo
+      await new Promise((resolve) => setTimeout(resolve, 200))
+
+      setUploading(true)
+      const response = await datasetsAPI.upload(selectedFile)
+      navigate(`/dashboard/${response.data.id}`)
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.detail || err.message || 'Error al procesar el archivo CSV')
+      setInspecting(false)
+      setUploading(false)
+    }
+  }, [navigate, scrollToUploadZone])
+
+  // Escucha global de pegado (Ctrl + V): permite pegar tablas copiadas de Excel o Google Sheets
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const target = e.target
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+
+      // Si se pegó un archivo desde el explorador
+      const files = e.clipboardData?.files
+      if (files && files.length > 0 && files[0].name.endsWith('.csv')) {
+        e.preventDefault()
+        processFileWithInspection(files[0])
+        return
+      }
+
+      // Si se copiaron celdas de Excel / Google Sheets o texto CSV
+      const text = e.clipboardData?.getData('text/plain')
+      if (text && text.trim()) {
+        const lines = text.trim().split(/\r?\n/).filter(Boolean)
+        const hasDelimiters = text.includes('\t') || text.includes(',') || text.includes(';')
+        if (lines.length >= 2 || hasDelimiters) {
+          e.preventDefault()
+          const csvText = clipboardToCsv(text)
+          if (!csvText) return
+          const pastedFile = new File([csvText], 'datos_portapapeles.csv', { type: 'text/csv' })
+          processFileWithInspection(pastedFile, true)
+        }
+      }
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [processFileWithInspection])
+
   const handleDrag = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -74,9 +394,7 @@ export default function Landing() {
     if (droppedFiles[0]) {
       const droppedFile = droppedFiles[0]
       if (droppedFile.name.endsWith('.csv')) {
-        setFile(droppedFile)
-        setError(null)
-        scrollToUploadZone()
+        processFileWithInspection(droppedFile)
       } else {
         setError('Por favor sube un archivo CSV válido')
       }
@@ -86,9 +404,7 @@ export default function Landing() {
   const handleChange = (e) => {
     const selectedFile = e.target.files[0]
     if (selectedFile && selectedFile.name.endsWith('.csv')) {
-      setFile(selectedFile)
-      setError(null)
-      scrollToUploadZone()
+      processFileWithInspection(selectedFile)
     } else {
       setError('Por favor selecciona un archivo CSV válido')
     }
@@ -99,17 +415,7 @@ export default function Landing() {
       setError('Selecciona un archivo primero')
       return
     }
-
-    setUploading(true)
-    setError(null)
-
-    try {
-      const response = await datasetsAPI.upload(file)
-      navigate(`/dashboard/${response.data.id}`)
-    } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.detail || 'Error al procesar el archivo CSV')
-      setUploading(false)
-    }
+    processFileWithInspection(file)
   }
 
   const handleSample = async () => {
@@ -129,13 +435,6 @@ export default function Landing() {
     document.getElementById('fileInput').click()
   }
 
-  const scrollToUploadZone = () => {
-    const el = document.getElementById('upload-section')
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-
   const FEATURE_SLIDES = [
     {
       kicker: '01 / CONSULTAS INTELIGENTES',
@@ -147,69 +446,7 @@ export default function Landing() {
         { label: 'Modo local:', text: 'Motor de reglas activo incluso si la IA no está disponible.' },
       ],
       renderWidget: () => (
-        <div style={{
-          background: 'var(--code-bg)',
-          border: '1px solid var(--card-border)',
-          borderRadius: '16px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          height: '100%',
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingBottom: '10px',
-            borderBottom: '1px solid var(--card-border)',
-          }}>
-            <span style={{
-              fontSize: '11px',
-              fontFamily: "'Geist Mono', monospace",
-              fontWeight: 700,
-              letterSpacing: '1px',
-              color: 'var(--accent-text)',
-            }}>
-              CONSULTA &gt;_
-            </span>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Geist Mono', monospace" }}>
-              SQL en tiempo real
-            </span>
-          </div>
-
-          <div style={{
-            background: 'var(--card-bg)',
-            borderRadius: '8px',
-            padding: '10px 14px',
-            fontSize: '13px',
-            color: 'var(--text-main)',
-            border: '1px solid var(--card-border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}>
-            <span style={{ color: 'var(--accent-text)', fontWeight: 700, fontFamily: "'Geist Mono', monospace" }}>&gt;</span>
-            <span>"¿Cuáles son las ventas totales por categoría este año?"</span>
-          </div>
-
-          <div style={{
-            background: 'var(--card-bg)',
-            borderRadius: '6px',
-            padding: '8px 12px',
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            border: '1px solid var(--card-border)',
-            overflowX: 'auto',
-          }}>
-            <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>SELECT</span> categoria, <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>SUM</span>(monto) <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>AS</span> total <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>GROUP BY</span> 1;
-          </div>
-
-          <div style={{ marginTop: '4px' }}>
-            <ChartRenderer chartConfig={DEMO_CHART} />
-          </div>
-        </div>
+        <SandboxWidget onOpenDemo={handleSample} />
       ),
     },
     {
@@ -720,6 +957,15 @@ export default function Landing() {
             flex-shrink: 0;
           }
         }
+        @keyframes pulseGlow {
+          0% { transform: scale(0.95); opacity: 0.6; }
+          100% { transform: scale(1.15); opacity: 1; }
+        }
+        @keyframes inspectionProgress {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(50%); }
+          100% { transform: translateX(200%); }
+        }
         `}</style>
 
       {/* Hero Wrapper - Rediseñado según la referencia visual del usuario */}
@@ -880,7 +1126,11 @@ export default function Landing() {
           {/* Card 1: Left (Tilted -4deg) */}
           <div
             className="hero-card hero-card-left"
-            onClick={scrollToUploadZone}
+            onClick={() => {
+              const el = document.getElementById('features')
+              el?.scrollIntoView({ behavior: 'smooth' })
+              setActiveFeatureSlide(0)
+            }}
             role="button"
             tabIndex={0}
           >
@@ -1014,21 +1264,106 @@ export default function Landing() {
             id="fileInput"
           />
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.75">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <div>
-              <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
-                {file ? 'Archivo CSV preparado' : 'Arrastra tu archivo CSV aquí o haz clic para explorar'}
+          {inspecting && inspectionSummary ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', padding: '12px 0' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '5px 14px',
+                borderRadius: '100px',
+                background: 'var(--accent-glow)',
+                border: '1px solid var(--accent)',
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  animation: 'pulseGlow 0.8s infinite alternate',
+                }} />
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  fontFamily: "'Geist Mono', monospace",
+                  color: 'var(--accent-text)',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}>
+                  {inspectionSummary.fromClipboard ? 'PORTAPAPELES DETECTADO' : 'INSPECCIÓN INSTANTÁNEA'}
+                </span>
+              </div>
+
+              <p style={{
+                fontSize: 'clamp(16px, 2.5vw, 20px)',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+                margin: 0,
+                textAlign: 'center',
+                letterSpacing: '-0.4px',
+              }}>
+                Detectadas {inspectionSummary.rowsCount.toLocaleString('es')} filas y {inspectionSummary.colsCount} columnas — Abriendo análisis...
               </p>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-                {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : 'Archivos delimitados por coma (.csv) con encabezados'}
-              </p>
+
+              <div style={{
+                width: '260px',
+                height: '4px',
+                borderRadius: '2px',
+                background: 'var(--card-border)',
+                overflow: 'hidden',
+                marginTop: '4px',
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: '50%',
+                  background: 'var(--accent-strong)',
+                  borderRadius: '2px',
+                  animation: 'inspectionProgress 0.8s infinite ease-in-out',
+                }} />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.75">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <div>
+                <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                  {file ? 'Archivo CSV preparado' : 'Arrastra tu archivo CSV aquí o haz clic para explorar'}
+                </p>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
+                  {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : 'Archivos delimitados por coma (.csv) con encabezados'}
+                </p>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--card-border)',
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                }}>
+                  <kbd style={{
+                    background: 'var(--code-bg)',
+                    border: '1px solid var(--card-border)',
+                    borderRadius: '4px',
+                    padding: '2px 6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    fontFamily: "'Geist Mono', monospace",
+                    color: 'var(--text-main)',
+                  }}>
+                    Ctrl + V
+                  </kbd>
+                  <span>Pega celdas de Excel o Google Sheets directamente</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
 {
