@@ -34,8 +34,8 @@ export default class ErrorBoundary extends Component {
             <button
               onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/' }}
               style={{
-                padding: '10px 20px', background: '#ef4444', color: 'white',
-                border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '14px',
+                padding: '10px 20px', background: 'var(--accent-strong, #be123c)', color: 'white',
+                border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px',
               }}
             >
               Volver al Inicio

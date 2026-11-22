@@ -70,6 +70,7 @@ function AutoCharts({ datasetId, analysis }) {
         <div key={i} style={{
           background: 'var(--chart-bg)',
           border: '1px solid var(--card-border)',
+          boxShadow: 'var(--shadow-card)',
           borderRadius: '12px',
           padding: '16px',
           minWidth: 0,
@@ -425,11 +426,12 @@ function KPI({ value, label }) {
     <div style={{
       background: 'var(--chart-bg)',
       border: '1px solid var(--card-border)',
+      boxShadow: 'var(--shadow-card)',
       borderRadius: '10px',
       padding: '16px',
       textAlign: 'center',
     }}>
-      <p style={{ margin: '0 0 2px 0', fontSize: '22px', fontWeight: 700, color: 'var(--text-main)' }}>{value}</p>
+      <p style={{ margin: '0 0 2px 0', fontSize: '22px', fontWeight: 700, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>{value}</p>
       <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{label}</p>
     </div>
   )

@@ -221,7 +221,7 @@ export default function ChatInput({ onSend, sending = false, columns = [] }) {
         borderRadius: '12px',
         padding: '4px 4px 4px 14px',
         transition: 'border-color 0.2s ease',
-        boxShadow: focused ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : 'none',
+        boxShadow: focused ? '0 0 0 3px rgba(225, 29, 72, 0.12)' : 'none',
       }}>
         <input
           ref={inputRef}

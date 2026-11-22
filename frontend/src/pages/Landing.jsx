@@ -853,7 +853,7 @@ export default function Landing() {
           border-color: var(--accent) !important;
         }
         [data-theme='light'] .hero-card:hover {
-          box-shadow: 0 20px 0 -2px var(--accent-strong), 0 30px 40px rgba(239, 68, 68, 0.2);
+          box-shadow: 0 20px 0 -2px var(--accent-strong), 0 30px 40px rgba(225, 29, 72, 0.15);
         }
         [data-theme='dark'] .hero-card:hover {
           box-shadow: 0 20px 0 -2px var(--accent-strong), 0 30px 40px rgba(0, 0, 0, 0.85);
@@ -1078,7 +1078,7 @@ export default function Landing() {
                 fontSize: '13px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)',
+                boxShadow: '0 4px 14px rgba(190, 18, 60, 0.25)',
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'var(--accent-hover)'
@@ -1102,7 +1102,7 @@ export default function Landing() {
           transform: 'translate(-50%, -50%)',
           width: 'min(900px, 80vw)',
           height: 'min(600px, 50vh)',
-          background: 'radial-gradient(ellipse at center, rgba(239, 68, 68, 0.40) 0%, rgba(239, 68, 68, 0.10) 50%, transparent 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(225, 29, 72, 0.28) 0%, rgba(225, 29, 72, 0.08) 50%, transparent 70%)',
           pointerEvents: 'none',
           zIndex: 0,
         }} />
@@ -1756,7 +1756,7 @@ export default function Landing() {
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.borderColor = 'var(--accent)'
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.1)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(225, 29, 72, 0.1)'
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.borderColor = 'var(--card-border)'

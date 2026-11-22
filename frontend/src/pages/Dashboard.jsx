@@ -525,7 +525,7 @@ export default function Dashboard() {
             position: sticky;
             top: 20px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            box-shadow: var(--shadow-card);
           }
           @media (max-width: 1040px) {
             .dash-split-workspace {
@@ -901,7 +901,7 @@ export default function Dashboard() {
               fontSize: '11px',
               fontFamily: "'Geist Mono', monospace",
               color: 'var(--text-muted)',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+              boxShadow: 'var(--shadow-card)',
             }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />

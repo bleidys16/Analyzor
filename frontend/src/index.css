@@ -55,18 +55,22 @@
   --text-main: #0f172a;
   --text-muted: #52606d;
   --card-bg: #f8fafc;
-  --card-border: rgba(0, 0, 0, 0.08);
-  --accent: #ef4444;
-  /* Vibrant Red: decorativo (iconos, bordes, gráficos). No usar como texto ni como fondo con texto encima: no pasa contraste AA. */
-  --accent-glow: rgba(239, 68, 68, 0.25);
-  /* Mismo rojo, oscurecido lo justo para pasar 4.5:1 como texto sobre los fondos claros/oscuros de la app */
-  --accent-text: #c0392b;
-  /* Mismo rojo, oscurecido para pasar 4.5:1 con texto blanco encima (botones, badges) */
-  --accent-strong: #dc2626;
-  --accent-hover: #b91c1c;
+  --card-border: rgba(0, 0, 0, 0.06);
+  /* Carmesí refinado (#e11d48): tono maduro y sereno, libre de la tensión visual del rojo de error */
+  --accent: #e11d48;
+  --accent-glow: rgba(225, 29, 72, 0.12);
+  --accent-text: #be123c;
+  --accent-strong: #be123c;
+  --accent-hover: #9f1239;
+  /* Rojo puro reservado exclusivamente para métricas destacadas y puntos focales críticos */
+  --metric-highlight: #ef4444;
+  /* Sombras y elevaciones limpias */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
   --code-bg: #f1f5f9;
   --chart-bg: #ffffff;
-  /* Color de alerta/anomalía, separado del rojo de acción primaria */
+  /* Color de alerta/anomalía, separado de la acción primaria */
   --warning: #b45309;
   --warning-glow: rgba(180, 83, 9, 0.12);
 }
@@ -77,14 +81,17 @@
   --text-main: #ffffff;
   --text-muted: #94a3b8;
   --card-bg: #0f1524;
-  --card-border: rgba(255, 255, 255, 0.05);
-  --accent: #ef4444;
-  /* Vibrant Red */
-  --accent-glow: rgba(239, 68, 68, 0.25);
-  /* En modo oscuro el rojo base ya pasa 4.5:1 como texto; no hace falta oscurecerlo */
-  --accent-text: #ef4444;
-  --accent-strong: #dc2626;
-  --accent-hover: #b91c1c;
+  --card-border: rgba(255, 255, 255, 0.08);
+  /* Carmesí refinado (#e11d48) */
+  --accent: #e11d48;
+  --accent-glow: rgba(225, 29, 72, 0.16);
+  --accent-text: #fb7185;
+  --accent-strong: #be123c;
+  --accent-hover: #9f1239;
+  --metric-highlight: #ef4444;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.45);
   --code-bg: #090d16;
   --chart-bg: #121826;
   --warning: #f59e0b;
@@ -116,6 +123,28 @@ body {
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tipografía numérica tabular: evita el salto o desalineación de columnas en tablas, métricas y porcentajes */
+body,
+table,
+th,
+td,
+code,
+kbd,
+pre,
+[data-numeric],
+.tabular-nums,
+input,
+button {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Tarjetas y superficies con bordes y sombras sutiles de alta definición */
+.card-subtle {
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-card);
 }
 
 /* Custom scrollbars */

@@ -449,7 +449,7 @@ export default function ChatMessages({ messages = [], sending = false, onSend, o
                   fontSize: '13px',
                   lineHeight: '1.55',
                   border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
-                  boxShadow: msg.role === 'user' ? '0 2px 8px rgba(239, 68, 68, 0.2)' : 'none',
+                  boxShadow: msg.role === 'user' ? '0 2px 8px rgba(225, 29, 72, 0.15)' : 'none',
                   whiteSpace: 'pre-wrap',
                   overflowWrap: 'break-word',
                 }}>

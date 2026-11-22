@@ -7,7 +7,7 @@ const statsDistribution = [
   { name: 'Percentil 95', value: 17 },
 ]
 
-const barColors = ['#ef4444', '#f43f5e', '#fb7185', '#fda4af']
+const barColors = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af']
 
 export default function StatsChart() {
   return (

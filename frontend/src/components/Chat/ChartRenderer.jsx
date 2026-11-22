@@ -5,8 +5,8 @@ import {
 } from 'recharts'
 import { chartToPng, downloadBlob, slugify } from '../../utils/chartImage'
 
-const chartColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
-const pieColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#d946ef']
+const chartColors = ['#e11d48', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
+const pieColors = ['#e11d48', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#d946ef']
 
 const gridStroke = 'var(--card-border)'
 const axisStroke = 'var(--text-muted)'

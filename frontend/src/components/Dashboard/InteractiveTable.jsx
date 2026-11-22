@@ -252,6 +252,7 @@ export default function InteractiveTable({
       <div style={{
         overflowX: 'auto',
         border: '1px solid var(--card-border)',
+        boxShadow: 'var(--shadow-card)',
         borderRadius: '8px',
         position: 'relative',
         minHeight: '200px',
@@ -286,6 +287,7 @@ export default function InteractiveTable({
           borderCollapse: 'collapse',
           fontSize: '12px',
           fontFamily: "'Geist', sans-serif",
+          fontVariantNumeric: 'tabular-nums',
         }}>
           <thead>
             <tr style={{

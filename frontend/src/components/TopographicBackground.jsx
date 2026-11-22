@@ -1,6 +1,6 @@
 export default function TopographicBackground({ isDark = false }) {
   const gridColor = isDark ? '#ffffff' : '#0f172a'
-  const accentColor = '#ef4444'
+  const accentColor = '#e11d48'
   const baseOpacity = isDark ? 0.22 : 0.15
 
   return (

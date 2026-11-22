@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable'
 
 const COLORS = {
   primary: [17, 24, 39],
-  accent: [239, 68, 68],
+  accent: [225, 29, 72],
   muted: [107, 114, 128],
   header: [30, 41, 59],
   rowAlt: [249, 250, 251],
