@@ -504,10 +504,16 @@ export default function Dashboard() {
             text-align: center;
             margin-top: 8px;
           }
+          .dash-container {
+            max-width: clamp(1400px, 94vw, 1780px);
+            margin: 0 auto;
+            width: 100%;
+            padding: 0 clamp(16px, 2.5vw, 40px);
+          }
           .dash-split-workspace {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 420px;
-            gap: 24px;
+            grid-template-columns: minmax(0, 1fr) clamp(380px, 26vw, 460px);
+            gap: clamp(16px, 2vw, 28px);
             align-items: start;
             transition: all 0.25s ease;
           }
@@ -527,6 +533,9 @@ export default function Dashboard() {
             overflow: hidden;
             box-shadow: var(--shadow-card);
           }
+          .assistant-mobile-backdrop {
+            display: none;
+          }
           @media (max-width: 1040px) {
             .dash-split-workspace {
               grid-template-columns: 1fr;
@@ -542,6 +551,14 @@ export default function Dashboard() {
               border-radius: 0;
               z-index: 1000;
               box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+            }
+            .assistant-mobile-backdrop {
+              display: block;
+              position: fixed;
+              inset: 0;
+              background: rgba(0, 0, 0, 0.45);
+              backdrop-filter: blur(2px);
+              z-index: 999;
             }
           }
           .query-workbench {
@@ -588,7 +605,7 @@ export default function Dashboard() {
           }
         `}</style>
 
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div className="dash-container">
 
           {/* HEADER */}
           <div className="dash-header">
@@ -695,6 +712,7 @@ export default function Dashboard() {
             marginBottom: '24px',
             borderBottom: '1px solid var(--card-border)',
             paddingBottom: '2px',
+            flexWrap: 'wrap',
           }}>
             <button
               className={`tab-btn ${activeTab === 'analysis' ? 'active' : ''}`}
@@ -771,6 +789,15 @@ export default function Dashboard() {
                 />
               )}
             </div>
+
+            {/* Backdrop en dispositivos móviles y tablets */}
+            {isChatOpen && (
+              <div
+                className="assistant-mobile-backdrop"
+                onClick={() => setIsChatOpen(false)}
+                aria-hidden="true"
+              />
+            )}
 
             {/* Panel Asistente Lateral (Split View Colapsable) */}
             {isChatOpen && (
@@ -916,7 +943,7 @@ export default function Dashboard() {
 
       {/* MODAL - DATASET LIST */}
       {showDatasetList && (
-        <div style={{
+        <div className="modal-overlay" style={{
           position: 'fixed',
           top: 0,
           left: 0,
@@ -924,21 +951,37 @@ export default function Dashboard() {
           bottom: 0,
           background: 'rgba(0,0,0,0.5)',
           display: 'flex',
-          alignItems: 'flex-end',
           zIndex: 999,
         }}>
           <style>{`
             @keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
             @keyframes modal-slide-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-            .modal-overlay { animation: modal-fade-in 0.15s ease; }
-            .modal-panel { animation: modal-slide-up 0.25s ease; }
+            .modal-overlay {
+              align-items: flex-end;
+              justify-content: center;
+              animation: modal-fade-in 0.15s ease;
+            }
+            .modal-panel {
+              animation: modal-slide-up 0.25s ease;
+              border-radius: 16px 16px 0 0;
+            }
+            @media (min-width: 641px) {
+              .modal-overlay {
+                align-items: center !important;
+                padding: 20px;
+              }
+              .modal-panel {
+                border-radius: 16px !important;
+                border: 1px solid var(--card-border);
+                box-shadow: var(--shadow-elevated) !important;
+              }
+            }
           `}</style>
 
           <div className="modal-panel" style={{
             background: 'var(--card-bg)',
             width: '100%',
             maxWidth: '600px',
-            borderRadius: '16px 16px 0 0',
             padding: '24px',
             maxHeight: '75vh',
             overflowY: 'auto',

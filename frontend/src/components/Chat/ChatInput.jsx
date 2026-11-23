@@ -134,7 +134,7 @@ export default function ChatInput({ onSend, sending = false, columns = [] }) {
             bottom: 'calc(100% + 8px)',
             left: 0,
             width: '320px',
-            maxWidth: '100%',
+            maxWidth: 'min(320px, calc(100vw - 32px))',
             background: 'var(--card-bg)',
             border: '1px solid var(--card-border)',
             borderRadius: '10px',

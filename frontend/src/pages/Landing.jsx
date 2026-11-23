@@ -870,6 +870,26 @@ export default function Landing() {
           text-align: center;
         }
 
+        @media (min-width: 1440px) {
+          .hero-cards-deck {
+            max-width: 1260px;
+            margin-top: 64px;
+            padding-bottom: 50px;
+          }
+          .hero-card {
+            flex: 0 1 360px;
+            min-height: 400px;
+            padding: 32px 28px 24px;
+          }
+          .hero-card-img {
+            max-height: 195px;
+          }
+          .gallery-slide-grid {
+            grid-template-columns: 1fr 1.15fr;
+            gap: 64px;
+          }
+        }
+
         .gallery-slide-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -923,14 +943,16 @@ export default function Landing() {
             align-items: center;
             gap: 24px;
             margin-top: 32px;
-            padding-bottom: 10px;
+            padding: 10px 12px 10px;
+            width: 100%;
+            max-width: 100%;
           }
           .hero-card {
             width: 100%;
-            max-width: 330px;
+            max-width: min(340px, 100%);
             margin: 0 !important;
             transform: none !important;
-            min-height: 320px;
+            min-height: 300px;
           }
           .hero-action-pill {
             flex-wrap: wrap;
@@ -976,8 +998,8 @@ export default function Landing() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '24px clamp(20px, 4vw, 50px)',
-          maxWidth: '1200px',
+          padding: '20px clamp(16px, 4vw, 50px)',
+          maxWidth: 'clamp(1200px, 88vw, 1560px)',
           margin: '0 auto',
           width: '100%',
           position: 'relative',
@@ -1100,8 +1122,8 @@ export default function Landing() {
           top: '30%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 'min(900px, 80vw)',
-          height: 'min(600px, 50vh)',
+          width: 'min(1200px, 85vw)',
+          height: 'min(650px, 50vh)',
           background: 'radial-gradient(ellipse at center, rgba(225, 29, 72, 0.28) 0%, rgba(225, 29, 72, 0.08) 50%, transparent 70%)',
           pointerEvents: 'none',
           zIndex: 0,
@@ -1198,9 +1220,9 @@ export default function Landing() {
 
     {/* Ingestion Section */}
     <section id="upload-section" style={{
-      maxWidth: '1000px',
+      maxWidth: 'clamp(860px, 78vw, 1140px)',
       margin: '20px auto 60px',
-      padding: '0 20px',
+      padding: '0 clamp(16px, 3vw, 28px)',
       position: 'relative',
       zIndex: 1,
     }}>
@@ -1452,9 +1474,9 @@ export default function Landing() {
 
       {/* Interactive Capabilities Gallery Showcase */}
       <section id="features" style={{
-        maxWidth: '1060px',
+        maxWidth: 'clamp(1060px, 86vw, 1360px)',
         margin: '50px auto 90px',
-        padding: '0 24px',
+        padding: '0 clamp(16px, 3vw, 28px)',
       }}>
         {/* Section Header */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -1672,10 +1694,10 @@ export default function Landing() {
   {/* MIS DATASETS */ }
 {
   !datasetsLoading && (
-    <section style={{
-      maxWidth: '1000px',
+    <section id="datasets-section" style={{
+      maxWidth: 'clamp(1000px, 86vw, 1360px)',
       margin: '80px auto 0',
-      padding: '0 20px',
+      padding: '0 clamp(16px, 3vw, 28px)',
     }}>
       <div style={{
         display: 'flex',

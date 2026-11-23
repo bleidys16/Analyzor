@@ -63,8 +63,8 @@ function AutoCharts({ datasetId, analysis }) {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-      gap: '16px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(280px, 28vw, 420px), 1fr))',
+      gap: 'clamp(14px, 1.8vw, 20px)',
     }}>
       {charts.map((chart, i) => (
         <div key={i} style={{
@@ -120,8 +120,8 @@ function DatasetSummary({ dataset, analysis, onViewAnomalyRows, onAskAnomaly }) 
       {/* KPIs */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: '10px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(110px, 9vw, 150px), 1fr))',
+        gap: 'clamp(8px, 1.2vw, 14px)',
       }}>
         <KPI value={dataset?.rows_count?.toLocaleString()} label="Filas" />
         <KPI value={columns.length} label="Columnas" />

@@ -143,7 +143,7 @@ export default function InteractiveTable({
           borderRadius: '8px',
           padding: '6px 12px',
           flex: '1 1 240px',
-          maxWidth: '380px',
+          maxWidth: '480px',
         }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="8" />
