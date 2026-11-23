@@ -1,119 +1,136 @@
 # Analyzor
 
-**Habla con tus datos.** Sube un CSV, haz preguntas en lenguaje natural y obtén respuestas con tablas, gráficos y un reporte PDF. Todo el análisis corre en tu navegador: el archivo no se sube a ningún servidor.
+**Terminal analítica visual impulsada por IA y DuckDB-WASM.** Sube un archivo CSV o pega tus datos directo del portapapeles (`Ctrl + V`), formula preguntas en lenguaje natural y obtén respuestas inmediatas con gráficos interactivos, tablas dinámicas y reportes ejecutivos en PDF. Todo el procesamiento de datos corre en la memoria RAM de tu navegador: tus archivos nunca se envían a ningún servidor externo.
 
-**▶ Demo en vivo: [analyzor.vercel.app](https://analyzor.vercel.app)** · pulsa *Probar con datos de ejemplo* y tendrás un dashboard en un clic.
+**Demo en vivo: [analyzor.vercel.app](https://analyzor.vercel.app)** · pulsa *Probar Demo* para explorar el entorno en un clic con datos de ejemplo.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB.svg)
 ![DuckDB](https://img.shields.io/badge/DuckDB--WASM-1.33-FFF000.svg)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF.svg)
 ![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-F38020.svg)
 ![Groq](https://img.shields.io/badge/Groq-gpt--oss-1A1A2E.svg)
 
 ![Portada de Analyzor](docs/screenshots/01-portada.png)
 
-## Qué puedes hacer
+## Funcionalidades principales
 
-- **Chat con IA que responde cualquier cosa.** Si preguntas por tus datos, la IA escribe el SQL, se ejecuta en tu navegador y te explica el resultado con un gráfico. Si conversas o preguntas otra cosa (saludos, programación, cultura general, "¿de qué trata mi dataset?"), responde en texto, con bloques de código y memoria de la conversación.
-- **Respaldo local.** Si la IA no está disponible o alcanzó su límite, un motor de reglas resuelve las preguntas comunes sobre tus datos (promedio, suma, máximo, conteos, agrupaciones…) y avisa al usuario.
-- **Perfilado automático.** Media, mediana, desviación, cuartiles, correlaciones, calidad de datos y anomalías.
-- **Gráficos en el chat.** Barras, líneas, dona, dispersión e histograma, elegidos según el resultado de cada consulta. Las fechas se dibujan como líneas, y puedes pedir el tipo con tus palabras («en barras», «en líneas», «en torta»). Cada gráfico se descarga como imagen PNG.
-- **Reporte PDF** generado en el navegador.
-- **CSV de Excel en español.** Detecta la codificación (Latin-1), el separador `;` y la coma decimal.
-- **Datos de ejemplo** de una tienda (500 ventas de 2025) para probarlo sin subir nada.
+### Carga y previsualización sin fricción
+- **Pegado directo del portapapeles (`Ctrl + V`):** Copia celdas o tablas desde Excel o Google Sheets y pégalas directamente en Analyzor. El sistema detecta y parsea los datos en memoria al instante sin obligar a guardar archivos en disco.
+- **Micro-inspección previa en Dropzone:** Al soltar o seleccionar un archivo, un micro-resumen animado en 200 ms detecta filas y columnas antes de iniciar el análisis.
+- **Sandbox interactivo en la portada:** Prueba consultas, correlaciones, evolución temporal y gráficos interactivos en vivo desde la misma landing page sin necesidad de registrarte ni cargar datos.
 
-| Análisis automático | Asistente con IA |
+### Dashboard analítico en Split View
+- **Entorno de trabajo simultáneo:** Visualiza métricas, gráficos automáticos y tablas al mismo tiempo que interactúas con el Asistente IA lateral (colapsable a pantalla completa o accesible vía drawer táctil en dispositivos móviles).
+- **Tabla interactiva DuckDB en tiempo real:** Ordena miles de filas por cualquier columna en menos de 3 ms, filtra al instante con búsqueda global multicriterio y examina nulos con badges discretos.
+- **Detección de anomalías con Click-To-Action:** Identifica filas con valores nulos o atípicos y accede a acciones directas de 1 clic para aislar los registros afectados o consultar a la IA sobre la causa.
+- **Telemetría local en el navegador:** Indicador en tiempo real de milisegundos de cómputo y verificación de privacidad (0 bytes transmitidos a servidores externos).
+
+### Chat analítico inteligente
+- **Autocompletado con `@` para columnas:** Escribe `@` en el campo de consulta para desplegar un menú inteligente con las columnas reales del dataset, evitando errores de tipeo.
+- **Preguntas sugeridas 100% dinámicas:** Generadas automáticamente a partir de la estructura del dataset cargado (top por categorías, evolución temporal si hay fechas, comparaciones numéricas).
+- **Acciones directas en cada respuesta:**
+  - **Copiar gráfico en 1 clic:** Copia la visualización como imagen PNG al portapapeles para pegarla en Slack, Teams, Notion o presentaciones.
+  - **Exportar vista de datos:** Copia tablas filtradas por la IA como TSV (para pegar en Excel) o CSV con un clic.
+- **Explicación humana de gráficos:** Cada visualización incluye un resumen en prosa que sintetiza la conclusión clave del gráfico.
+- **Protección y fallback automático:** Filtro estricto anti-alucinaciones que rechaza scripts de Python/matplotlib, extrayendo las sentencias SQL para garantizar visualizaciones interactivas nativas con Recharts en el navegador.
+
+### Craftmanship y estética visual
+- **Paleta carmesí refinado (`#e11d48`):** Un tono maduro y sereno para botones primarios, badges y acentos interactivos, reservando el rojo exclusivamente para alertas críticas y métricas focales.
+- **Tipografía numérica tabular (`tabular-nums`):** Números y porcentajes con ancho uniforme en toda la plataforma para evitar desalineaciones en tablas y métricas dinámicas.
+- **Bordes y elevaciones limpias:** Bordes sutiles de 1 px (`rgba(0,0,0,0.06)` en claro, `rgba(255,255,255,0.08)` en oscuro) y sombras de alta definición.
+- **100% libre de emojis:** Interfaz visual sobria con iconografía vectorial SVG profesional.
+- **Diseño responsive integral:** Optimizado para pantallas pequeñas (móviles sin desbordes horizontales) y monitores ultrawide/4K (hasta 1780 px sin espacios vacíos).
+
+| Portada editorial & Sandbox interactivo | Split View del Dashboard & Anomalías |
 |---|---|
-| ![Análisis del dataset](docs/screenshots/02-analisis.png) | ![Chat con IA y gráficos](docs/screenshots/03-chat.png) |
+| ![Portada de Analyzor](docs/screenshots/01-portada.png) | ![Análisis del dataset](docs/screenshots/02-analisis.png) |
+
+| Terminal analítica & Gráficos con IA | Tabla interactiva DuckDB (< 3 ms) |
+|---|---|
+| ![Chat con IA y gráficos](docs/screenshots/03-chat.png) | ![Tabla interactiva](docs/screenshots/04-vista-previa.png) |
 
 ## Cómo funciona
 
-Los datos **nunca salen de tu navegador**. El análisis corre localmente con DuckDB compilado a WebAssembly; solo la traducción "pregunta → SQL" usa una IA externa, y a ella se le envía únicamente el **esquema de columnas y hasta 5 filas de muestra**.
+Los datos **nunca salen de tu navegador**. El análisis analítico y las consultas SQL corren localmente con DuckDB compilado a WebAssembly. La IA externa se utiliza exclusivamente para traducir tu pregunta en lenguaje natural a una consulta SQL de lectura, enviando únicamente el **esquema de nombres de columnas y hasta 5 filas de muestra**.
 
 ```
-Navegador (React)                                     Cloudflare Worker          Groq
- ├─ DuckDB-WASM: perfilado estadístico y SQL      ┐
- ├─ IndexedDB: datasets y historial del chat      ├─ POST /api/ask, /api/answer ─▶ gpt-oss
- ├─ PDF generado en el cliente (jsPDF)            │   · la API key vive solo aquí
- └─ Motor de reglas (si la IA no está disponible) ┘   · origen permitido, tamaño y ráfagas limitados
-                                                      · cuota diaria por usuario y global (Durable Object)
+Navegador (React + DuckDB-WASM)                        Cloudflare Worker          Groq
+ ├─ DuckDB-WASM: ejecución SQL y perfilado local    ┐
+ ├─ IndexedDB: almacenamiento local de datasets     ├─ POST /api/ask, /api/answer ─▶ gpt-oss
+ ├─ Recharts + jsPDF: gráficos y reportes en cliente │   · la API key vive solo en el Worker
+ └─ Motor de reglas local (fallback si no hay IA)   ┘   · limitación de ráfagas y cuota diaria
+                                                        · 0 datos del archivo enviados a la nube
 ```
 
-- **Seguridad del SQL:** solo se acepta una consulta `SELECT`, sin funciones de lectura de archivos, y corre en el sandbox del navegador.
-- **Límites de uso de la IA:** el Worker cuenta las llamadas por IP y en total cada día (UTC). Al superarlas responde `429` y el chat sigue funcionando con el motor de reglas, avisando al usuario.
-- **Sin servidor de datos:** no hay base de datos, ni disco, ni arranque en frío. Cuesta $0 en los planes gratuitos.
+- **Seguridad del SQL:** Solo se ejecutan sentencias de lectura `SELECT` validadas por un guardia estricto, sin acceso a funciones de red ni sistema de archivos.
+- **Respaldo local sin IA:** Si la conexión a la IA no está disponible o se agota la cuota, el motor de reglas interno resuelve consultas de agregación, promedios, rankings, filtros y gráficos de forma autónoma.
+- **Sin servidores backend:** Sin base de datos centralizada, sin costo de infraestructura fija y sin arranque en frío.
 
-## Estructura
+## Estructura del proyecto
 
 ```
-frontend/            React + Vite
-  src/engine/        Motor local: DuckDB, perfilado, chat, PDF, IndexedDB
-  src/api/           Adaptadores que exponen el motor con la forma de API que usa la UI
-  src/pages, components/
-  public/ejemplo_ventas.csv   Dataset de ejemplo (scripts/generate-sample-data.mjs)
-worker/              Cloudflare Worker: proxy de IA, validación y cuotas de uso
-docs/screenshots/    Capturas del README (npm run screenshots)
+frontend/            React 19 + Vite 8
+  src/engine/        Motor local: DuckDB-WASM, perfilado estadístico, chat, PDF, IndexedDB
+  src/api/           Adaptadores que exponen el motor con la interfaz de API de la UI
+  src/components/    Componentes interactivos: Split View, Chat, Tabla DuckDB, Gráficos
+  src/pages/         Landing editorial y Dashboard analítico
+  scripts/           Automatización de capturas oficiales con Puppeteer
+worker/              Cloudflare Worker: proxy seguro de IA, validación y control de cuotas
+docs/screenshots/    Capturas oficiales del README
 ```
 
 ## Desarrollo local
 
-Requisitos: Node 20+.
+Requisitos: Node.js 20+.
 
 ```bash
 cd frontend
 npm install
-npm run dev          # http://localhost:5173
-npm test             # pruebas del motor
-npm run lint
+npm run dev          # Inicia en http://localhost:5173
+npm test             # Ejecuta la suite de pruebas unitarias (Vitest)
+npm run lint         # Verificación de linter (ESLint)
 ```
 
-Sin más configuración la app funciona con el motor de reglas. Para activar la IA en local:
+Sin configuración adicional, la aplicación opera al 100% utilizando el motor local de DuckDB y reglas. Para activar la traducción con IA en entorno local:
 
 ```bash
 cd worker
 npm install
-npx wrangler dev --var GROQ_API_KEY:<tu-clave>     # http://localhost:8787
-# en otra terminal, en frontend/.env.local:
-#   VITE_LLM_URL=http://localhost:8787
+npx wrangler dev --var GROQ_API_KEY:<tu-clave-groq>     # Inicia en http://localhost:8787
+
+# En frontend/.env.local:
+# VITE_LLM_URL=http://localhost:8787
 ```
 
-> No pegues la clave en el código ni en el repo (`.env.local` está ignorado por git). `npm run smoke` en `worker/` prueba la IA real de extremo a extremo con la clave de tu entorno (`GROQ_API_KEY`).
-
-Regenerar las capturas del README (con la app corriendo):
+Para regenerar las capturas oficiales de la documentación:
 
 ```bash
 cd frontend
 npm run screenshots
 ```
 
-## Despliegue
+## Despliegue en producción
 
-**1. Worker de IA (Cloudflare, plan gratuito)**
+**1. Worker de IA (Cloudflare Workers)**
 
 ```bash
 cd worker
 npx wrangler login
-npx wrangler secret put GROQ_API_KEY        # copia la clave (empieza por gsk_) y pégala con clic derecho
-# revisa ALLOWED_ORIGINS en wrangler.toml: debe ser el dominio exacto de tu frontend
-npx wrangler deploy                         # imprime la URL del Worker
+npx wrangler secret put GROQ_API_KEY
+npx wrangler deploy
 ```
 
-El primer despliegue crea también el Durable Object `UsageCounter` (contadores de cuota). Los topes diarios se ajustan en `wrangler.toml` con `DAILY_LIMIT_PER_IP` y `DAILY_LIMIT_GLOBAL` (cada pregunta del chat usa 1 o 2 llamadas de IA). Para ver errores en vivo: `npx wrangler tail analyzor-llm`.
+Configura `ALLOWED_ORIGINS` en `wrangler.toml` con la URL de tu frontend en producción.
 
-**2. Frontend en Vercel** (también sirve Cloudflare Pages u otro hosting estático)
+**2. Frontend (Vercel o Cloudflare Pages)**
 
-- Conecta el repositorio. Directorio raíz: `frontend` · Comando de build: `npm run build` · Salida: `dist`.
-- Variable de entorno: `VITE_LLM_URL` = la URL del Worker, aplicada a **Production**. Se lee al construir, así que hay que redesplegar tras cambiarla.
-- `frontend/vercel.json` reescribe todas las rutas a `index.html`, para que recargar `/dashboard/…` o compartir ese enlace funcione.
+- Directorio raíz: `frontend`
+- Comando de build: `npm run build`
+- Directorio de salida: `dist`
+- Variable de entorno: `VITE_LLM_URL` con la URL de tu Cloudflare Worker desplegado.
 
-Los binarios de DuckDB-WASM (~35 MB) se descargan del CDN de jsDelivr en la primera visita y quedan en caché; no se suben al hosting.
+## Privacidad y almacenamiento
 
-## Límites conocidos
-
-- Los datasets viven en el navegador (IndexedDB): borrar los datos del sitio los elimina. Tamaño máximo: 200 MB por CSV.
-- Las copias de prueba (*preview*) de Vercel no tienen IA: el Worker solo acepta el dominio de producción. Ahí el chat usa el motor de reglas.
-- Los límites y modelos de los planes gratuitos (Groq, Cloudflare, Vercel) cambian con el tiempo. El modelo se configura con `GROQ_MODEL` (por defecto `openai/gpt-oss-120b`; Groq retiró `llama-3.3-70b-versatile` el 16/08/2026, consulta [la lista de deprecaciones](https://console.groq.com/docs/deprecations)). El plan gratuito de Vercel (Hobby) es solo para uso no comercial.
-- La versión anterior (Django + PostgreSQL en Render) está disponible en el tag `legacy-django`.
-
-## Camino a producto
-
-La persistencia pasa por `frontend/src/engine/store.js`. Para cuentas de usuario y sincronización entre dispositivos basta con implementar la misma interfaz sobre un servicio como Supabase (Auth + Storage) y aplicar cuotas por usuario en el Worker.
+- Los datasets residen exclusivamente en el almacenamiento local del navegador (`IndexedDB`).
+- Límite recomendado: hasta 200 MB por archivo CSV (procesado mediante streaming en DuckDB-WASM).
+- Al limpiar la memoria caché o datos del navegador, los datasets locales se eliminan por completo.

@@ -5,6 +5,7 @@
 import puppeteer from 'puppeteer-core'
 import { existsSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { preview } from 'vite'
 
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
 const OUT_DIR = fileURLToPath(new URL('../../docs/screenshots/', import.meta.url))
@@ -22,6 +23,14 @@ if (!BROWSER) {
   process.exit(1)
 }
 mkdirSync(OUT_DIR, { recursive: true })
+
+let previewServer = null
+try {
+  await fetch(APP_URL, { method: 'HEAD' })
+} catch {
+  console.log('Iniciando servidor Vite Preview para tomar las capturas...')
+  previewServer = await preview({ preview: { port: 5173, open: false } })
+}
 
 const QUESTIONS = [
   '¿Qué categoría genera más ingresos y cuánto?',
@@ -44,8 +53,8 @@ try {
   }
   const clickButton = (text) =>
     page.evaluate((label) => {
-      const button = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === label)
-      if (!button) throw new Error(`No hay un botón "${label}"`)
+      const button = [...document.querySelectorAll('button')].find((b) => b.textContent.trim().includes(label))
+      if (!button) throw new Error(`No hay un botón que contenga "${label}"`)
       button.click()
     }, text)
   const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -53,44 +62,45 @@ try {
   // 1. Portada
   await page.goto(APP_URL, { waitUntil: 'networkidle0' })
   await page.evaluate(() => document.fonts.ready)
-  await pause(800)
+  await pause(1000)
   await shot('01-portada')
 
   // 2. Dashboard con el dataset de ejemplo (un clic desde la portada)
-  await clickButton('Probar con datos de ejemplo')
+  await clickButton('Probar Demo')
   await page.waitForFunction(() => location.pathname.startsWith('/dashboard/'), { timeout: 60000 })
-  await page.waitForFunction(() => document.body.innerText.includes('Resumen de Columnas'), { timeout: 60000 })
-  await pause(1200)
+  await page.waitForFunction(() => document.body.innerText.includes('Filas') || document.body.innerText.includes('Análisis'), { timeout: 60000 })
+  await pause(1500)
   await shot('02-analisis')
 
-  // 3. Chat: preguntas con gráficos y respuestas
-  await clickButton('Asistente IA')
-  await pause(600)
+  // 3. Chat en Split View: preguntas con gráficos y respuestas
   for (const question of QUESTIONS) {
-    await page.type('input[placeholder="Escribe tu pregunta..."], textarea[placeholder="Escribe tu pregunta..."]', question)
-    await page.evaluate(() => {
-      const input = document.querySelector('input[placeholder="Escribe tu pregunta..."], textarea[placeholder="Escribe tu pregunta..."]')
+    const inputSelector = 'input[placeholder*="Escribe tu pregunta"]'
+    await page.waitForSelector(inputSelector, { timeout: 15000 })
+    await page.type(inputSelector, question)
+    await page.evaluate((sel) => {
+      const input = document.querySelector(sel)
       ;(input.parentElement.querySelector('button') || input.closest('div').querySelector('button')).click()
-    })
+    }, inputSelector)
     await page.waitForFunction(
       (q) => {
         const text = document.body.innerText
         const at = text.lastIndexOf(q)
-        return at >= 0 && text.slice(at + q.length).trim().length > 20
+        return at >= 0 && text.slice(at + q.length).trim().length > 15
       },
       { timeout: 45000 },
       question
     )
-    await pause(900)
+    await pause(1000)
   }
-  await pause(2200) // deja que termine la animación del gráfico
+  await pause(2000) // deja que termine la animación del gráfico
   await shot('03-chat')
 
-  // 4. Vista previa de datos
-  await clickButton('Vista Previa')
-  await pause(700)
+  // 4. Tabla interactiva DuckDB
+  await clickButton('Tabla Interactiva')
+  await pause(1000)
   await shot('04-vista-previa')
 } finally {
   await browser.close()
+  if (previewServer) await previewServer.close()
 }
 console.log(`Capturas guardadas en ${OUT_DIR}`)
