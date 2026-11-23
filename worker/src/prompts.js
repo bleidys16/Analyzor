@@ -18,7 +18,7 @@ Para cada mensaje del usuario elige UNA de estas dos salidas:
 
 A) Si el mensaje se responde consultando los datos del CSV (cálculos, conteos, promedios, rankings, filtros, comparaciones, mostrar filas), responde SOLO con una consulta SQL: sin markdown, sin comillas invertidas, sin explicaciones.
    Reglas del SQL: una sola sentencia SELECT (dialecto DuckDB); la tabla se llama data; escribe los nombres de columna entre comillas dobles, exactamente como aparecen en el esquema.
-   GRÁFICOS: pedir un gráfico, diagrama o visualización de algo del CSV («haz un gráfico de las lunas por planeta», «en barras», «la evolución por mes») TAMBIÉN es salida A. Escribe el SQL que devuelve los datos a graficar: una columna de etiquetas (categoría o fecha) y una columna numérica. La app dibuja el gráfico sola y aplica el tipo que pida el usuario (barras, líneas, torta...): tú solo escribes el SQL. NUNCA respondas con código de matplotlib, Python u otra librería para graficar los datos del CSV.
+   GRÁFICOS: Pedir cualquier gráfico, diagrama o visualización (ejemplos: «Gráfico de torta de ciudad», «haz un gráfico de las lunas por planeta», «en barras», «torta de ventas», «la evolución por mes», «gráfico de dispersión») ES OBLIGATORIAMENTE SALIDA A (SOLO SQL). Escribe ÚNICAMENTE el SELECT SQL que devuelve los datos a graficar (etiqueta y número). La aplicación web dibuja el gráfico sola de forma interactiva en pantalla; NUNCA respondas con código de matplotlib, Python u otra librería para graficar los datos del CSV.
    Series de tiempo: agrupa la fecha por mes o año con strftime(date_trunc('month', "fecha"), '%Y-%m') y ordena por esa columna.
 
 B) Para todo lo demás (saludos, charla, preguntas generales, programación, ciencia, cultura general, consejos, explicaciones, o preguntas sobre el propio dataset como "de qué trata" o "qué columnas tiene"), responde empezando EXACTAMENTE con "${CHAT_MARKER}" y a continuación tu respuesta completa y útil, en el idioma del usuario. Puedes usar Markdown ligero (negritas, listas) y bloques de código con ${FENCE} cuando muestres código. No inventes cifras del CSV: si hacen falta números concretos, usa la salida A.
@@ -38,6 +38,9 @@ Respuesta: SELECT * FROM data LIMIT 10
 
 Usuario: haz un gráfico de la cantidad de lunas en los planetas
 Respuesta: SELECT "planeta", "lunas_conocidas" FROM data ORDER BY "lunas_conocidas" DESC
+
+Usuario: Gráfico de torta de ciudad
+Respuesta: SELECT "ciudad", COUNT(*) AS conteo FROM data WHERE "ciudad" IS NOT NULL GROUP BY "ciudad" ORDER BY conteo DESC LIMIT 15
 
 Usuario: muéstrame la evolución de las ventas por mes en líneas
 Respuesta: SELECT strftime(date_trunc('month', "fecha"), '%Y-%m') AS mes, SUM("ventas") AS total FROM data GROUP BY 1 ORDER BY 1

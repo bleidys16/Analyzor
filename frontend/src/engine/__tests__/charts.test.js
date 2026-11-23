@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { detectChartType, parseChartRequest } from '../chartGenerator'
-import { sendMessage } from '../chatService'
+import { extractSqlFromScript, isPythonScriptHallucination, sendMessage } from '../chatService'
 import { uploadDataset } from '../datasetService'
 import { generateFallbackSql } from '../fallbackSql'
 import { setRunnerFactory } from '../session'
@@ -257,5 +257,47 @@ describe('sugerencias del chat con gráficos', () => {
     expect(reply.sql_generated).toMatch(/LIMIT 5/i)
     expect(reply.query_result.data.length).toBeGreaterThan(0)
     expect(reply.query_result.data.length).toBeLessThanOrEqual(5)
+  })
+
+  it('rechaza alucinaciones de Python/matplotlib de la IA y devuelve un gráfico interactivo real', async () => {
+    const scriptAlucinado = `Aquí tienes un ejemplo de cómo generar un gráfico de torta que muestra la distribución de ventas por ciudad usando Python, pandas y matplotlib.
+\`\`\`python
+import duckdb
+import pandas as pd
+import matplotlib.pyplot as plt
+
+con = duckdb.connect(database=':memory:')
+con.execute("""
+    SELECT "ciudad", COUNT(*) AS conteo
+    FROM data
+    GROUP BY "ciudad"
+    ORDER BY conteo DESC
+""").df()
+
+plt.pie(df['conteo'], labels=df['ciudad'])
+plt.show()
+\`\`\`
+Pasos a seguir:
+1. Instala las librerías: pip install duckdb pandas matplotlib`
+
+    expect(isPythonScriptHallucination(scriptAlucinado)).toBe(true)
+    const sql = extractSqlFromScript(scriptAlucinado)
+    expect(sql).toContain('SELECT "ciudad", COUNT(*) AS conteo')
+    expect(sql).toContain('FROM data')
+
+    // Simulamos que el LLM responde con ese script alucinado en reply.answer
+    const hallucinatingLlm = {
+      enabled: true,
+      ask: async () => ({ answer: scriptAlucinado }),
+      answer: async () => 'El 50% de las ventas se concentran en Cali.',
+    }
+
+    const ds = await uploadDataset(csvFile('ventas-hallucination.csv', VENTAS))
+    const reply = await sendMessage(ds.id, 'Gráfico de torta de ciudad', { llm: hallucinatingLlm })
+
+    expect(reply.content).not.toMatch(/matplotlib|import pandas|pip install/)
+    expect(reply.sql_generated).toBeTruthy()
+    expect(reply.query_result.chart.type).toBe('pie')
+    expect(reply.query_result.data.length).toBeGreaterThan(0)
   })
 })

@@ -39,10 +39,43 @@ function noteLlmError(err, ctx, what) {
 // Texto que no es SQL ni un error del modelo: se muestra tal cual como respuesta
 const isProse = (text) => typeof text === 'string' && text.trim() && !/^error\b/i.test(text.trim())
 
+// Detecta si una respuesta de la IA es una alucinación de script de Python / matplotlib / pandas
+// en vez de ejecutar la consulta en DuckDB o devolver SQL
+export function isPythonScriptHallucination(text) {
+  if (!text || typeof text !== 'string') return false
+  const lower = text.toLowerCase()
+  return (
+    lower.includes('matplotlib') ||
+    lower.includes('plt.') ||
+    lower.includes('plt.show') ||
+    lower.includes('seaborn') ||
+    lower.includes('sns.') ||
+    (lower.includes('import pandas') && lower.includes('read_csv')) ||
+    (lower.includes('import duckdb') && lower.includes('read_csv')) ||
+    (lower.includes('pip install') && (lower.includes('matplotlib') || lower.includes('pandas') || lower.includes('duckdb')))
+  )
+}
+
+// Extrae una sentencia SELECT de DuckDB si la IA la embebió dentro de un script de Python alucinado
+export function extractSqlFromScript(text) {
+  if (!text || typeof text !== 'string') return null
+  const matches = [...text.matchAll(/SELECT\s+[\s\S]+?\s+FROM\s+["']?data["']?[\s\S]*?(?="""|'''|;|"|\)\.df|\n\s*(?:df_|plt\.|con\.|pd\.|#|```|$))/gi)]
+  for (const m of matches) {
+    const candidate = m[0].trim()
+    if (!candidate.toLowerCase().includes('read_csv')) {
+      const cleaned = cleanLlmSql(candidate)
+      if (cleaned) return cleaned
+    }
+  }
+  return null
+}
+
 // La IA decide si es una consulta a los datos (SQL) o una conversación (texto).
 // Solo si no hay IA, o falla, se recurre a las reglas locales.
 async function findAnswer(runner, meta, question, llm, ctx) {
   const { columns, dtypes } = meta
+  const isChartIntent = parseChartRequest(question) !== null || /\b(gr[aá]fico|gr[aá]fica|torta|pastel|dona|barras?|l[ií]neas?|dispersi[oó]n|histograma)\b/i.test(question)
+
   if (llm.enabled) {
     try {
       const reply = await llm.ask({
@@ -53,13 +86,28 @@ async function findAnswer(runner, meta, question, llm, ctx) {
         rowsCount: meta.rows_count,
         history: ctx.history,
       })
-      if (reply.answer) return { chat: reply.answer }
 
-      const sql = cleanLlmSql(reply.sql)
+      // 1. Si vino como respuesta de texto (reply.answer)
+      if (reply.answer) {
+        const isHallucination = isPythonScriptHallucination(reply.answer)
+        if (!isHallucination && !isChartIntent) {
+          return { chat: reply.answer }
+        }
+        // Si alucinó un script o era un pedido de gráfico, intentamos rescatar el SQL del texto
+        const extracted = extractSqlFromScript(reply.answer)
+        if (extracted) {
+          const result = await runSelect(runner, extracted)
+          if (!result.error) return { sql: extracted, result, viaRules: false }
+        }
+      }
+
+      // 2. Si vino como SQL (o si rescatamos SQL de la alucinación)
+      const rawSql = reply.sql || (reply.answer && isPythonScriptHallucination(reply.answer) ? extractSqlFromScript(reply.answer) : null)
+      const sql = cleanLlmSql(rawSql)
       if (sql) {
         const result = await runSelect(runner, sql)
         if (!result.error) return { sql, result, viaRules: false }
-      } else if (isProse(reply.sql)) {
+      } else if (isProse(reply.sql) && !isPythonScriptHallucination(reply.sql) && !isChartIntent) {
         return { chat: reply.sql.trim() } // el modelo respondió en texto sin usar el marcador
       }
     } catch (err) {
